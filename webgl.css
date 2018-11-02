@@ -1,0 +1,25 @@
+body {
+	background-color: #090909;
+}
+
+h1 {
+	text-align: center;
+	font-weight: 900;
+	color: #26d8e2;
+}
+
+canvas {
+	display: block;
+	margin: auto;
+}
+
+#gamearea {
+	margin: auto;
+}
+
+#JavaScriptErr
+{
+	text-align: center;
+	color: red;
+	font-size: 100%;
+}
