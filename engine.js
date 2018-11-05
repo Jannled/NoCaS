@@ -1,67 +1,64 @@
+const displayRatio = 16/9;
+
+/** Vertex shader */
+const vsSource = `
+	attribute vec4 aVertexPosition;
+	attribute vec3 aVertexNormal;
+	attribute vec2 aTextureCoord;
+
+	uniform mat4 uNormalMatrix;
+	uniform mat4 uModelViewMatrix;
+	uniform mat4 uProjectionMatrix;
+
+	varying highp vec2 vTextureCoord;
+	varying highp vec3 vLighting;
+
+	void main(void) {
+		gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+		vTextureCoord = aTextureCoord;
+
+		// Apply lighting effect
+
+		highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+		highp vec3 directionalLightColor = vec3(1, 1, 1);
+		highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+
+		highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+
+		highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+		vLighting = ambientLight + (directionalLightColor * directional);
+	}`;
+
+/** Fragment shader */
+const fsSource = `
+	varying highp vec2 vTextureCoord;
+	varying highp vec3 vLighting;
+
+	uniform sampler2D uSampler;
+
+	void main(void) {
+		highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+
+		gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+	}`;
+
 var cubeRotation = 0.0;
 var gl;
-
+const canvas = document.querySelector('#glcanvas');
+	
 main();
-
-//
-// Start here
-//
+	
+/** Main Method */
 function main() {
-	const canvas = document.querySelector('#glcanvas');
 	gl = canvas.getContext('webgl');
 
 	// If we don't have a GL context, give up now
 
 	if (!gl) {
+		console.log("WEBGL FAIL")
 		alert('Unable to initialize WebGL. Your browser or machine may not support it.');
 		return;
 	}
-
-	// Vertex shader program
-
-	const vsSource = `
-		attribute vec4 aVertexPosition;
-		attribute vec3 aVertexNormal;
-		attribute vec2 aTextureCoord;
-
-		uniform mat4 uNormalMatrix;
-		uniform mat4 uModelViewMatrix;
-		uniform mat4 uProjectionMatrix;
-
-		varying highp vec2 vTextureCoord;
-		varying highp vec3 vLighting;
-
-		void main(void) {
-			gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-			vTextureCoord = aTextureCoord;
-
-			// Apply lighting effect
-
-			highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-			highp vec3 directionalLightColor = vec3(1, 1, 1);
-			highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
-
-			highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
-
-			highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-			vLighting = ambientLight + (directionalLightColor * directional);
-		}
-	`;
-
-	// Fragment shader program
-
-	const fsSource = `
-		varying highp vec2 vTextureCoord;
-		varying highp vec3 vLighting;
-
-		uniform sampler2D uSampler;
-
-		void main(void) {
-			highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
-
-			gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
-		}
-	`;
 
 	// Initialize a shader program; this is where all the lighting
 	// for the vertices and so forth is established.
@@ -561,9 +558,24 @@ window.addEventListener('resize', newSize);
 
 function newSize()
 {
+	var twidth = window.innerWidth;
 	console.log("Hello");
 	const hcanvas = document.getElementById("glcanvas");
-	hcanvas.width = window.innerWidth-50;
-	hcanvas.height = window.innerHeight-50;
+	hcanvas.width = twidth-50;
+	hcanvas.height = twidth / displayRatio - 50;
 	gl.viewport(0, 0, hcanvas.width, hcanvas.height);
+}
+
+function goFullscreen()
+{
+	var gameArea = document.getElementById("gamearea");
+	if (gameArea.requestFullscreen) {
+		gameArea.requestFullscreen();
+	} else if (gameArea.mozRequestFullScreen) { /* Firefox */
+		gameArea.mozRequestFullScreen();
+	} else if (gameArea.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+		gameArea.webkitRequestFullscreen();
+	} else if (gameArea.msRequestFullscreen) { /* IE/Edge */
+		gameArea.msRequestFullscreen();
+	}
 }

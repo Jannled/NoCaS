@@ -17,9 +17,13 @@ canvas {
 	margin: auto;
 }
 
-#JavaScriptErr
-{
+#JavaScriptErr {
 	text-align: center;
 	color: red;
 	font-size: 100%;
 }
+
+#button {
+	background-color: blue;
+}
+	
