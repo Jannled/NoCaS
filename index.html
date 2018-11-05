@@ -3,18 +3,18 @@
 <head>
 	<title> -- NoCaS -- </title>
 	<link rel="stylesheet" href="webgl.css" type="text/css">
+	
+	<script src="gl-matrix.js"></script> <!-- Matrix Library        -->
+	<script src="game.js"></script>      <!-- Website related stuff -->
+	<script src="engine.js"></script>    <!-- WebGL rendering stuff -->
 </head>
 
-<body>
+<body>	
 	<h1>NoCaS</h1>
 	<div id="gamearea">
 		<p id="JavaScriptErr">You need JavaScript in order to play this game!</p>
 	</div>
-	<button id="button" onClick="goFullscreen()" style="margin-left: 20px;">Fullscreen</button>
-
-	<script src="gl-matrix.js"></script> <!-- Matrix Library        -->
-	<script src="game.js"></script>      <!-- Website related stuff -->
-	<script src="engine.js"></script>    <!-- WebGL rendering stuff -->
+	<button id="button" onClick="goFullscreen();" style="margin-left: 20px;">Fullscreen</button>
 
 	<hr>
 	<p>
