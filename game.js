@@ -123,6 +123,7 @@ function main()
 {
   	// Here's where we call the routine that builds all the
   	// objects we'll be drawing.
-  	loadModelToScene(gl, positions, normals, texCoords, indices, 'cubetexture.png');
-  	loadModelToScene(gl, positions, normals, texCoords, indices, 'cubetexture.png');
+  	loadModelToScene(gl, positions, normals, texCoords, indices, 'cubetexture.png', [4, 0, -6], [0.5, 0, 0]);
+  	loadModelToScene(gl, positions, normals, texCoords, indices, 'cubetexture.png', [0, 0, -6], [0, 0.5, 0]);
+	loadModelToScene(gl, positions, normals, texCoords, indices, 'cubetexture.png', [-4, 0, -6], [0, 0, 0.5]);
 }

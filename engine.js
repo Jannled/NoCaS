@@ -117,7 +117,7 @@ function main()
 	requestAnimationFrame(render);
 }
 
-function loadModel(gl, positions, normals, texCoords, indices, textureUrl)
+function loadModel(gl, positions, normals, texCoords, indices, textureUrl, position, rotation, scale)
 {
 	//Build the positions buffer
 	const positionBuffer = gl.createBuffer();
@@ -172,25 +172,21 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl)
 	image.src = textureUrl;
 
 	return {
-		position: positionBuffer,
+		vertex: positionBuffer,
 		normal: normalBuffer,
 		textureCoord: textureCoordBuffer,
 		indices: indexBuffer,
 		texture: texture,
+		position: position,
+		rotation: rotation,
+		scale: scale,
 		render: function(programInfo, projectionMatrix)
 		{
 			const modelViewMatrix = mat4.create();
-			mat4.translate(modelViewMatrix,		 // destination matrix
-										 modelViewMatrix,		 // matrix to translate
-										 [0.0, 0, -6.0]);	// amount to translate
-			mat4.rotate(modelViewMatrix,	// destination matrix
-									modelViewMatrix,	// matrix to rotate
-									currentTime,		 // amount to rotate in radians
-									[0, 0, 1]);			 // axis to rotate around (Z)
-			mat4.rotate(modelViewMatrix,	// destination matrix
-									modelViewMatrix,	// matrix to rotate
-									currentTime * .7,// amount to rotate in radians
-									[0, 1, 0]);			 // axis to rotate around (X)
+			mat4.translate(modelViewMatrix, modelViewMatrix, position);		// amount to translate
+			mat4.rotate(modelViewMatrix, modelViewMatrix, rotation[0], [1, 0, 0]);	// axis to rotate around in radians (Z)
+			mat4.rotate(modelViewMatrix, modelViewMatrix, rotation[1], [0, 1, 0]);	// axis to rotate around in radians (Z)
+			mat4.rotate(modelViewMatrix, modelViewMatrix, rotation[2], [0, 0, 1]);	// axis to rotate around in radians (Z)
 
 			const normalMatrix = mat4.create();
 			mat4.invert(normalMatrix, modelViewMatrix);
@@ -199,7 +195,7 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl)
 			// Tell WebGL how to pull out the positions from the position
 			// buffer into the vertexPosition attribute
 			{
-				gl.bindBuffer(gl.ARRAY_BUFFER, this.position);
+				gl.bindBuffer(gl.ARRAY_BUFFER, this.vertex);
 				gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
 				gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 			}
@@ -258,9 +254,24 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl)
 	};
 }
 
-function loadModelToScene(gl, positions, normals, texCoords, indices, textureUrl)
+function loadModelToScene(gl, vertex, normals, texCoords, indices, textureUrl, position, rotation, scale)
 {
-	scene[scene.length] = loadModel(gl, positions, normals, texCoords, indices, textureUrl);
+	if(position == null)
+		position = [0, 0, 0];
+	if(rotation == null)
+		rotation = [0, 0, 0];
+	if(scale == null)
+		scale = [0, 0, 0];
+
+	if(Array.isArray(position) && (Array.isArray(rotation)) && Array.isArray(scale))
+		console.info("Loading model");
+	else
+	{
+		console.warn("Failed to load model, invalid params!");
+		return;
+	}
+
+	scene[scene.length] = loadModel(gl, positions, normals, texCoords, indices, textureUrl, position, rotation, scale);
 }
 
 function isPowerOf2(value) {
