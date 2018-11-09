@@ -1,124 +1,5 @@
-const displayRatio = 16/9;
+const displayRatio = 16 / 9;
 const canvasID = 'glcanvas';
-
-//Test Cube
-const positions = [
-	// Front face
-	-1.0, -1.0,	1.0,
-	 1.0, -1.0,	1.0,
-	 1.0,	1.0,	1.0,
-	-1.0,	1.0,	1.0,
-
-	// Back face
-	-1.0, -1.0, -1.0,
-	-1.0,	1.0, -1.0,
-	 1.0,	1.0, -1.0,
-	 1.0, -1.0, -1.0,
-
-	// Top face
-	-1.0,	1.0, -1.0,
-	-1.0,	1.0,	1.0,
-	 1.0,	1.0,	1.0,
-	 1.0,	1.0, -1.0,
-
-	// Bottom face
-	-1.0, -1.0, -1.0,
-	 1.0, -1.0, -1.0,
-	 1.0, -1.0,	1.0,
-	-1.0, -1.0,	1.0,
-
-	// Right face
-	 1.0, -1.0, -1.0,
-	 1.0,	1.0, -1.0,
-	 1.0,	1.0,	1.0,
-	 1.0, -1.0,	1.0,
-
-	// Left face
-	-1.0, -1.0, -1.0,
-	-1.0, -1.0,	1.0,
-	-1.0,	1.0,	1.0,
-	-1.0,	1.0, -1.0,
-];
-
-const normals = [
-		// Front
-		 0.0,	0.0,	1.0,
-		 0.0,	0.0,	1.0,
-		 0.0,	0.0,	1.0,
-		 0.0,	0.0,	1.0,
-
-		// Back
-		 0.0,	0.0, -1.0,
-		 0.0,	0.0, -1.0,
-		 0.0,	0.0, -1.0,
-		 0.0,	0.0, -1.0,
-
-		// Top
-		 0.0,	1.0,	0.0,
-		 0.0,	1.0,	0.0,
-		 0.0,	1.0,	0.0,
-		 0.0,	1.0,	0.0,
-
-		// Bottom
-		 0.0, -1.0,	0.0,
-		 0.0, -1.0,	0.0,
-		 0.0, -1.0,	0.0,
-		 0.0, -1.0,	0.0,
-
-		// Right
-		 1.0,	0.0,	0.0,
-		 1.0,	0.0,	0.0,
-		 1.0,	0.0,	0.0,
-		 1.0,	0.0,	0.0,
-
-		// Left
-		-1.0,	0.0,	0.0,
-		-1.0,	0.0,	0.0,
-		-1.0,	0.0,	0.0,
-		-1.0,	0.0,	0.0
-	];
-
-	const texCoords = [
-	// Front
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Back
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Top
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Bottom
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Right
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Left
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-];
-
-const indices = [
-	0,	1,	2,			0,	2,	3,		// front
-	4,	5,	6,			4,	6,	7,		// back
-	8,	9,	10,		 8,	10, 11,	 // top
-	12, 13, 14,		 12, 14, 15,	 // bottom
-	16, 17, 18,		 16, 18, 19,	 // right
-	20, 21, 22,		 20, 22, 23,	 // left
-];
 
 /** Vertex shader */
 const vsSource = `
@@ -219,11 +100,6 @@ function main()
 		},
 	};
 
-	// Here's where we call the routine that builds all the
-	// objects we'll be drawing.
-	scene[scene.length] = loadModel(gl, positions, normals, texCoords, indices, 'cubetexture.png');
-	scene[scene.length] = loadModel(gl, positions, normals, texCoords, indices, 'cubetexture.png');
-
 	var then = 0;
 
 	newSize();
@@ -301,7 +177,90 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl)
 		textureCoord: textureCoordBuffer,
 		indices: indexBuffer,
 		texture: texture,
+		render: function(programInfo, projectionMatrix)
+		{
+			const modelViewMatrix = mat4.create();
+			mat4.translate(modelViewMatrix,		 // destination matrix
+										 modelViewMatrix,		 // matrix to translate
+										 [0.0, 0, -6.0]);	// amount to translate
+			mat4.rotate(modelViewMatrix,	// destination matrix
+									modelViewMatrix,	// matrix to rotate
+									currentTime,		 // amount to rotate in radians
+									[0, 0, 1]);			 // axis to rotate around (Z)
+			mat4.rotate(modelViewMatrix,	// destination matrix
+									modelViewMatrix,	// matrix to rotate
+									currentTime * .7,// amount to rotate in radians
+									[0, 1, 0]);			 // axis to rotate around (X)
+
+			const normalMatrix = mat4.create();
+			mat4.invert(normalMatrix, modelViewMatrix);
+			mat4.transpose(normalMatrix, normalMatrix);
+
+			// Tell WebGL how to pull out the positions from the position
+			// buffer into the vertexPosition attribute
+			{
+				gl.bindBuffer(gl.ARRAY_BUFFER, this.position);
+				gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+				gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+			}
+
+			// Tell WebGL how to pull out the texture coordinates from
+			// the texture coordinate buffer into the textureCoord attribute.
+			{
+				gl.bindBuffer(gl.ARRAY_BUFFER, this.textureCoord);
+				gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
+				gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+			}
+
+			// Tell WebGL how to pull out the normals from
+			// the normal buffer into the vertexNormal attribute.
+			{
+				gl.bindBuffer(gl.ARRAY_BUFFER, this.normal);
+				gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, 3, gl.FLOAT, false, 0, 0);
+				gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
+			}
+
+			// Tell WebGL which indices to use to index the vertices
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
+
+			// Set the shader uniforms
+			gl.uniformMatrix4fv(
+					programInfo.uniformLocations.projectionMatrix,
+					false,
+					projectionMatrix);
+			gl.uniformMatrix4fv(
+					programInfo.uniformLocations.modelViewMatrix,
+					false,
+					modelViewMatrix);
+			gl.uniformMatrix4fv(
+					programInfo.uniformLocations.normalMatrix,
+					false,
+					normalMatrix);
+
+			// Specify the texture to map onto the faces.
+
+			// Tell WebGL we want to affect texture unit 0
+			gl.activeTexture(gl.TEXTURE0);
+
+			// Bind the texture to texture unit 0
+			gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+			// Tell the shader we bound the texture to texture unit 0
+			gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
+
+			{
+				const vertexCount = 36;
+				const type = gl.UNSIGNED_SHORT;
+				const offset = 0;
+				gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+			}
+		}
 	};
+}
+
+function loadModelToScene(gl, positions, normals, texCoords, indices, textureUrl)
+{
+	scene[scene.length] = loadModel(gl, positions, normals, texCoords, indices, textureUrl);
 }
 
 function isPowerOf2(value) {
@@ -326,86 +285,12 @@ function drawScene(gl, programInfo, deltaTime) {
 	// note: glmatrix.js always has the first argument as the destination to receive the result.
 	mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
 
+	// Tell WebGL to use our program when drawing
+	gl.useProgram(programInfo.program);
+
 	for(var i=0; i<scene.length; i++)
 	{
-		const modelViewMatrix = mat4.create();
-		mat4.translate(modelViewMatrix,		 // destination matrix
-									 modelViewMatrix,		 // matrix to translate
-									 [0.0, i, -6.0]);	// amount to translate
-		mat4.rotate(modelViewMatrix,	// destination matrix
-								modelViewMatrix,	// matrix to rotate
-								currentTime,		 // amount to rotate in radians
-								[0, 0, 1]);			 // axis to rotate around (Z)
-		mat4.rotate(modelViewMatrix,	// destination matrix
-								modelViewMatrix,	// matrix to rotate
-								currentTime * .7,// amount to rotate in radians
-								[0, 1, 0]);			 // axis to rotate around (X)
-
-		const normalMatrix = mat4.create();
-		mat4.invert(normalMatrix, modelViewMatrix);
-		mat4.transpose(normalMatrix, normalMatrix);
-
-		// Tell WebGL how to pull out the positions from the position
-		// buffer into the vertexPosition attribute
-		{
-			gl.bindBuffer(gl.ARRAY_BUFFER, scene[i].position);
-			gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
-			gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-		}
-
-		// Tell WebGL how to pull out the texture coordinates from
-		// the texture coordinate buffer into the textureCoord attribute.
-		{
-			gl.bindBuffer(gl.ARRAY_BUFFER, scene[i].textureCoord);
-			gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
-			gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
-		}
-
-		// Tell WebGL how to pull out the normals from
-		// the normal buffer into the vertexNormal attribute.
-		{
-			gl.bindBuffer(gl.ARRAY_BUFFER, scene[i].normal);
-			gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, 3, gl.FLOAT, false, 0, 0);
-			gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-		}
-
-		// Tell WebGL which indices to use to index the vertices
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, scene[i].indices);
-
-		// Tell WebGL to use our program when drawing
-		gl.useProgram(programInfo.program);
-
-		// Set the shader uniforms
-		gl.uniformMatrix4fv(
-				programInfo.uniformLocations.projectionMatrix,
-				false,
-				projectionMatrix);
-		gl.uniformMatrix4fv(
-				programInfo.uniformLocations.modelViewMatrix,
-				false,
-				modelViewMatrix);
-		gl.uniformMatrix4fv(
-				programInfo.uniformLocations.normalMatrix,
-				false,
-				normalMatrix);
-
-		// Specify the texture to map onto the faces.
-
-		// Tell WebGL we want to affect texture unit 0
-		gl.activeTexture(gl.TEXTURE0);
-
-		// Bind the texture to texture unit 0
-		gl.bindTexture(gl.TEXTURE_2D, scene[i].texture);
-
-		// Tell the shader we bound the texture to texture unit 0
-		gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
-
-		{
-			const vertexCount = 36;
-			const type = gl.UNSIGNED_SHORT;
-			const offset = 0;
-			gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
-		}
+		scene[i].render(programInfo, projectionMatrix);
 	}
 
 	// Update the rotation for the next draw
