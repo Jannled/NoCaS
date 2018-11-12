@@ -1,5 +1,5 @@
 const displayRatio = 16 / 9;
-const canvasID = 'glcanvas';
+var canvas = document.getElementById('glcanvas');
 
 /** Vertex shader */
 const vsSource = `
@@ -45,8 +45,6 @@ const fsSource = `
 
 var currentTime = 0.0;
 var gl;
-var canvas;
-
 var scene = [];
 
 main();
@@ -60,7 +58,6 @@ function main()
 	//JavaScript is running
 	if(js != null) js.style.color = "#00FF00";
 
- 	canvas = document.getElementById(canvasID);
 	if(canvas != null) gl = canvas.getContext('webgl');
 	else
 	{
@@ -347,13 +344,13 @@ window.addEventListener('resize', newSize);
 /** Handle window resize */
 function newSize()
 {
-	var twidth = window.innerWidth-50;
-	var theight = Math.round(twidth / displayRatio - 50);
+	var twidth = canvas.parentElement.clientWidth;
+	var theight = Math.round(twidth / displayRatio);
+
 	console.log("Canvas resized to " + twidth + "x" + theight);
-	const hcanvas = document.getElementById("glcanvas");
-	hcanvas.width = twidth;
-	hcanvas.height = theight;
-	gl.viewport(0, 0, hcanvas.width, hcanvas.height);
+	canvas.width = twidth;
+	canvas.height = theight;
+	gl.viewport(0, 0, canvas.width, canvas.height);
 }
 
 /** Make game fullscreen */
