@@ -9,24 +9,24 @@ h1 {
 	color: #26d8e2;
 }
 
+button {
+	background-color: #004844;
+	color: black;
+	border: none;
+	padding: 10px;
+}
+
 canvas {
 	display: block;
-	margin: auto;
 }
 
 #gamearea {
 	margin: auto;
+	padding: 0;
 }
 
 #JavaScriptErr {
 	text-align: center;
 	color: red;
 	font-size: 100%;
-}
-
-button {
-	background-color: #004844;
-	color: black;
-	border: none;
-	padding: 10px;
 }

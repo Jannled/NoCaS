@@ -99,8 +99,6 @@ function main()
 
 	var then = 0;
 
-	newSize();
-
 	// Draw the scene repeatedly
 	function render(now) {
 		now *= 0.001;	// convert to seconds
@@ -340,11 +338,13 @@ function loadShader(gl, type, source) {
 	return shader;
 }
 
+window.scrollBy(0,1); //Safari fix
 window.addEventListener('resize', newSize);
-/** Handle window resize */
+/** Handle window y */
 function newSize()
 {
-	var twidth = canvas.parentElement.clientWidth;
+	console.log(canvas.parentNode.offsetWidth);
+	var twidth = canvas.parentElement.offsetWidth;
 	var theight = Math.round(twidth / displayRatio);
 
 	console.log("Canvas resized to " + twidth + "x" + theight);
