@@ -99,6 +99,8 @@ function main()
 
 	var then = 0;
 
+	newSize();
+
 	// Draw the scene repeatedly
 	function render(now) {
 		now *= 0.001;	// convert to seconds
@@ -240,10 +242,7 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl, posit
 			gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
 
 			{
-				const vertexCount = 36;
-				const type = gl.UNSIGNED_SHORT;
-				const offset = 0;
-				gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+				gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 			}
 		}
 	};
@@ -259,7 +258,7 @@ function loadModelToScene(gl, vertex, normals, texCoords, indices, textureUrl, p
 		scale = [0, 0, 0];
 
 	if(Array.isArray(position) && (Array.isArray(rotation)) && Array.isArray(scale))
-		console.info("Loading model");
+		console.info("Loading model with " + vertex.length + " vertices, " + indices.length + ' indices with the texture url: "' + textureUrl + '"."');
 	else
 	{
 		console.warn("Failed to load model, invalid params!");
@@ -343,7 +342,6 @@ window.addEventListener('resize', newSize);
 /** Handle window y */
 function newSize()
 {
-	console.log(canvas.parentNode.offsetWidth);
 	var twidth = canvas.parentElement.offsetWidth;
 	var theight = Math.round(twidth / displayRatio);
 

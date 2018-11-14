@@ -77,10 +77,10 @@ const normals = [
 
 	const texCoords = [
 	// Front
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
 	0.0,	1.0,
+	1.0,	1.0,
+	1.0,	0.0,
+	0.0,	0.0,
 	// Back
 	0.0,	0.0,
 	1.0,	0.0,
@@ -117,13 +117,37 @@ const indices = [
 	20, 21, 22,		 20, 22, 23,	 // left
 ];
 
+const bgVertices = [
+	-1.0,	-1.0,	0.0,
+ 	1.0,	-1.0,	0.0,
+ 	1.0,	1.0,	0.0,
+	-1.0,	1.0,	0.0,]
+
+const bgIndices = [
+	0,	1,	2,	0,	2,	3,		// front
+]
+
+const bgNormals = [
+	 0.0,	0.0,	1.0,
+	 0.0,	0.0,	1.0,
+	 0.0,	0.0,	1.0,
+	 0.0,	0.0,	1.0,
+]
+
+const bgTexCoords = [
+	0.0,	1.0,
+	1.0,	1.0,
+	1.0,	0.0,
+	0.0,	0.0,
+]
+
 main();
 
 function main()
 {
   	// Here's where we call the routine that builds all the
   	// objects we'll be drawing.
-  	loadModelToScene(gl, positions, normals, texCoords, indices, 'cubetexture.png', [4, 0, -6], [0.5, 0, 0]);
-  	loadModelToScene(gl, positions, normals, texCoords, indices, 'cubetexture.png', [0, 0, -6], [0, 0.5, 0]);
-	loadModelToScene(gl, positions, normals, texCoords, indices, 'cubetexture.png', [-4, 0, -6], [0, 0, 0.5]);
+
+	loadModelToScene(gl, bgVertices, bgNormals, bgTexCoords, bgIndices, 'Entwurf Spielbrett NoCaS.jpeg', [0, 0, -6], [0, 0, 0]);
+	newSize();
 }
