@@ -4,6 +4,7 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<title> JannledModelFormat converter </title>
 	<link rel="stylesheet" href="webgl.css" type="text/css">
+	<script src="convert.js"></script>
 
 	<style>form * {
 	display: block;
@@ -15,6 +16,8 @@
 	<script type="text/javascript">
 		function download(filename, text)
 		{
+			convertFromObj(text);
+
 			var element = document.createElement('a');
 			element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
 			element.setAttribute('download', filename);

@@ -56,4 +56,12 @@ function convertFromObj(objContent)
         break;
     }
   }
+
+  return {
+	  modelName,
+	  vertices,
+	  normals,
+	  texCoords,
+	  faces
+  };
 }
