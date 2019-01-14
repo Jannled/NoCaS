@@ -1,7 +1,7 @@
 
 function convertFromObj(objContent)
 {
-    var modelName = "--NULL--";
+    var modelName = "ConvertedModel";
     var vertices = [];
     var normals = [];
     var texCoords = [];
@@ -50,7 +50,6 @@ function convertFromObj(objContent)
                     }
                     break;
                 }
-			case "#": break;
 
 			case "mtllib": break;
 
@@ -58,9 +57,14 @@ function convertFromObj(objContent)
 
 			case "s": break;
 
-        	default:
-                	console.error("Undefined key: " + key[0] + ", in line " + i + "!");
-                break;
+      case "": break;
+
+    	default:
+        if (key[0][0] == '#')
+          console.log(lines[i])
+        else
+          console.error("Undefined key: " + key[0] + ", in line " + i + "!");
+      break;
 		}
     }
 
