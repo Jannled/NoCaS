@@ -116,22 +116,22 @@ function main()
 
 function loadModel(gl, positions, normals, texCoords, indices, textureUrl, position, rotation, scale)
 {
-	//Build the positions buffer
+	//Build the positions buffer (Attrib 0)
 	const positionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
-	//Build the normals buffer
+	//Build the normals buffer (Attrib 1)
 	const normalBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
 
-	//Build the texture coords buffer
+	//Build the texture coords buffer (Attrib 2)
 	const textureCoordBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
-	// Build the element array buffer
+	// Build the element array buffer (Attrib 3)
 	const indexBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
@@ -266,6 +266,20 @@ function loadModelToScene(gl, vertices, normals, texCoords, indices, textureUrl,
 	}
 
 	scene[scene.length] = loadModel(gl, vertices, normals, texCoords, indices, textureUrl, position, rotation, scale);
+}
+
+/**
+ * Uses JQuery to download a model file which will then be parsed and loaded into the scene
+ * @param fileUrl Path of the obj file to be downloaded
+*/
+function loadModelFromUrl(fileUrl)
+{
+	jQuery.get(fileUrl, function(data, status)
+	{
+		console.log('Request: "' + fileUrl + '" [' + status + "].")
+		var model = convertFromObj(data);
+		loadModelToScene(gl, model.vertices, model.normals, model.texCoords, model.faces, 'Entwurf Spielbrett NoCaS.jpeg', [0, 0, -6], [0, 0, 0]);
+	});
 }
 
 function isPowerOf2(value) {
