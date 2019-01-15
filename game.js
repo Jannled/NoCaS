@@ -1,153 +1,22 @@
-//Test Cube
-const positions = [
-	// Front face
-	-1.0, -1.0,	1.0,
-	 1.0, -1.0,	1.0,
-	 1.0,	1.0,	1.0,
-	-1.0,	1.0,	1.0,
-
-	// Back face
-	-1.0, -1.0, -1.0,
-	-1.0,	1.0, -1.0,
-	 1.0,	1.0, -1.0,
-	 1.0, -1.0, -1.0,
-
-	// Top face
-	-1.0,	1.0, -1.0,
-	-1.0,	1.0,	1.0,
-	 1.0,	1.0,	1.0,
-	 1.0,	1.0, -1.0,
-
-	// Bottom face
-	-1.0, -1.0, -1.0,
-	 1.0, -1.0, -1.0,
-	 1.0, -1.0,	1.0,
-	-1.0, -1.0,	1.0,
-
-	// Right face
-	 1.0, -1.0, -1.0,
-	 1.0,	1.0, -1.0,
-	 1.0,	1.0,	1.0,
-	 1.0, -1.0,	1.0,
-
-	// Left face
-	-1.0, -1.0, -1.0,
-	-1.0, -1.0,	1.0,
-	-1.0,	1.0,	1.0,
-	-1.0,	1.0, -1.0,
-];
-
-const normals = [
-		// Front
-		 0.0,	0.0,	1.0,
-		 0.0,	0.0,	1.0,
-		 0.0,	0.0,	1.0,
-		 0.0,	0.0,	1.0,
-
-		// Back
-		 0.0,	0.0, -1.0,
-		 0.0,	0.0, -1.0,
-		 0.0,	0.0, -1.0,
-		 0.0,	0.0, -1.0,
-
-		// Top
-		 0.0,	1.0,	0.0,
-		 0.0,	1.0,	0.0,
-		 0.0,	1.0,	0.0,
-		 0.0,	1.0,	0.0,
-
-		// Bottom
-		 0.0, -1.0,	0.0,
-		 0.0, -1.0,	0.0,
-		 0.0, -1.0,	0.0,
-		 0.0, -1.0,	0.0,
-
-		// Right
-		 1.0,	0.0,	0.0,
-		 1.0,	0.0,	0.0,
-		 1.0,	0.0,	0.0,
-		 1.0,	0.0,	0.0,
-
-		// Left
-		-1.0,	0.0,	0.0,
-		-1.0,	0.0,	0.0,
-		-1.0,	0.0,	0.0,
-		-1.0,	0.0,	0.0
-	];
-
-	const texCoords = [
-	// Front
-	0.0,	1.0,
-	1.0,	1.0,
-	1.0,	0.0,
-	0.0,	0.0,
-	// Back
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Top
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Bottom
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Right
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-	// Left
-	0.0,	0.0,
-	1.0,	0.0,
-	1.0,	1.0,
-	0.0,	1.0,
-];
-
-const indices = [
-	0,	1,	2,			0,	2,	3,		// front
-	4,	5,	6,			4,	6,	7,		// back
-	8,	9,	10,		 8,	10, 11,	 // top
-	12, 13, 14,		 12, 14, 15,	 // bottom
-	16, 17, 18,		 16, 18, 19,	 // right
-	20, 21, 22,		 20, 22, 23,	 // left
-];
-
-const bgVertices = [
-	-1.0,	-1.0,	0.0,
- 	1.0,	-1.0,	0.0,
- 	1.0,	1.0,	0.0,
-	-1.0,	1.0,	0.0,]
-
-const bgIndices = [
-	0,	1,	2,	0,	2,	3,		// front
-]
-
-const bgNormals = [
-	 0.0,	0.0,	1.0,
-	 0.0,	0.0,	1.0,
-	 0.0,	0.0,	1.0,
-	 0.0,	0.0,	1.0,
-]
-
-const bgTexCoords = [
-	0.0,	1.0,
-	1.0,	1.0,
-	1.0,	0.0,
-	0.0,	0.0,
-]
 
 main();
 
 function main()
 {
-  	// Here's where we call the routine that builds all the
-  	// objects we'll be drawing.
-
-	loadModelToScene(gl, bgVertices, bgNormals, bgTexCoords, bgIndices, 'Entwurf Spielbrett NoCaS.jpeg', [0, 0, -6], [0, 0, 0]);
+	loadModelFromUrl('models/cube.obj');
 	newSize();
+}
+
+/**
+ * Uses JQuery to download a model file which will then be parsed and loaded into the scene
+ * @param fileUrl Path of the obj file to be downloaded
+*/
+function loadModelFromUrl(fileUrl)
+{
+	jQuery.get(fileUrl, function(data, status)
+	{
+		console.log('Request: "' + fileUrl + '" [' + status + "].")
+		var model = convertFromObj(data);
+		loadModelToScene(loadModelToScene(gl, model.vertices, model.normals, model.texCoords, model.faces, 'Entwurf Spielbrett NoCaS.jpeg', [0, 0, -6], [0, 0, 0]));
+	});
 }

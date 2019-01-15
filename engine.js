@@ -248,7 +248,7 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl, posit
 	};
 }
 
-function loadModelToScene(gl, vertex, normals, texCoords, indices, textureUrl, position, rotation, scale)
+function loadModelToScene(gl, vertices, normals, texCoords, indices, textureUrl, position, rotation, scale)
 {
 	if(position == null)
 		position = [0, 0, 0];
@@ -257,15 +257,15 @@ function loadModelToScene(gl, vertex, normals, texCoords, indices, textureUrl, p
 	if(scale == null)
 		scale = [0, 0, 0];
 
-	if(Array.isArray(position) && (Array.isArray(rotation)) && Array.isArray(scale))
-		console.info("Loading model with " + vertex.length + " vertices, " + indices.length + ' indices with the texture url: "' + textureUrl + '"."');
+	if(Array.isArray(position) && (Array.isArray(rotation)) && Array.isArray(scale) && Array.isArray(vertices) && Array.isArray(normals) && Array.isArray(indices))
+		console.info("Loading model with " + (vertices.length/3) + " vertices, " + (indices.length/3) + ' indices with the texture url: "' + textureUrl + '"."');
 	else
 	{
 		console.warn("Failed to load model, invalid params!");
 		return;
 	}
 
-	scene[scene.length] = loadModel(gl, positions, normals, texCoords, indices, textureUrl, position, rotation, scale);
+	scene[scene.length] = loadModel(gl, vertices, normals, texCoords, indices, textureUrl, position, rotation, scale);
 }
 
 function isPowerOf2(value) {
