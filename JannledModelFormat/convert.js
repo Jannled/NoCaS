@@ -69,15 +69,37 @@ function convertFromObj(objContent)
 			  console.log("Undefined key: " + key[0] + ", in line " + i + "!");
 			break;
 		}
+
+    //OpenGL stores data different from obj
+    var conVertices = [];
+    var conNormals = [];
+    var conUVs = [];
+    var indices = [];
+
+    //Check for matching attrib data
+    for(var k=0; k<vertices.length; k++)
+    {
+      for(var l=0; l<vertexIndices.length; l++)
+      {
+        if(vertexIndices[l] == k)
+        {
+          
+        }
+      }
+    }
+
+    //Compute normals per vertex
+    for(var k=0; k<vertexIndices.length; k++)
+    {
+
+    }
 	}
 
   return {
     modelName,
-    vertices,
-    normals,
-    texCoords,
-    vertexIndices,
-	uvIndices,
-	normalIndices
+    conVertices,
+    conNormals,
+    conUVs,
+    indices
   };
 }
