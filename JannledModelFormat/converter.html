@@ -6,6 +6,7 @@
 	<link rel="stylesheet" href="../webgl.css" type="text/css">
 	<link rel="icon" href="/favicon.ico" type="image/x-icon">
 	<script src="three_min.js"></script>
+	<script src="LoaderSupport.js"></script>
 	<script src="OBJLoader2.js"></script>
 	<script src="convert.js"></script>
 </head>
@@ -13,40 +14,21 @@
 <body>
 	<script type="text/javascript">
 
-
-/*		loader.load(
-			// resource URL
-			'../models/Cube.obj',
-			// called when resource is loaded
-			function ( object ) {
-				vertices = object.children[0].geometry.attributes.position.array;
-				normals = object.children[0].geometry.attributes.normal.array;
-				uvs = object.children[0].geometry.attributes.uv.array;
-				console.log("Object loaded: " + object.children.length);
-			},
-			// called when loading is in progresses
-			function ( xhr ) {},
-			// called when loading has errors
-			function ( error ) {
-
-				console.log( 'An error happened while loading ' );
-
-			}
-		);*/
-
 		function download(filename)
 		{
 			var text = document.getElementById("objFile").value;
 
-			var object = convertFromObj(text);
-			var vertices = object.vertices;
-			var normals = object.normals;
-			var uvs = object.uvs;
-			console.log("Model name: " + object);
+			var model = convertFromObj(text);
+			var vertices = model.vertices;
+			var normals = model.normals;
+			var uvs = model.uvs;
+
+			var jmf = convertToJMF(model.modelName, model.vertices, model.normals, model.uvs, model.indices);
+			console.log("Model name: " + model.modelName);
 
 			//Start download
 			var element = document.createElement('a');
-			element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+			element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(jmf));
 			element.setAttribute('download', model.modelName + ".jmf");
 
 			element.style.display = 'none';

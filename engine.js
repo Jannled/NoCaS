@@ -278,7 +278,7 @@ function loadModelFromUrl(fileUrl)
 	{
 		console.log('Request: "' + fileUrl + '" [' + status + "].")
 		var model = convertFromObj(data);
-		loadModelToScene(gl, model.vertices, model.normals, model.texCoords, model.faces, 'Entwurf Spielbrett NoCaS.jpeg', [0, 0, -6], [0, 0, 0]);
+		loadModelToScene(gl, model.vertices, model.normals, model.uvs, model.indices, 'Entwurf Spielbrett NoCaS.jpeg', [0, 0, -6], [0, 0, 0]);
 	});
 }
 
