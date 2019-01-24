@@ -5,11 +5,31 @@ function convertFromObj(objContent)
 	loader.setUseIndices(true);
 	var object = loader.parse(objContent);
 
-	var modelName = object.children[0].name;
-	var indices = object.children[0].geometry.index.array;
-	var vertices = object.children[0].geometry.attributes.position.array;
-	var normals = object.children[0].geometry.attributes.normal.array;
-	var uvs = object.children[0].geometry.attributes.uv.array;
+	var modelName = "ConvertedModel";
+	var indices = [];
+	var vertices = [];
+	var normals = [];
+	var uvs = [];
+
+
+	if(!(typeof object.children[0].geometry.attributes.position === 'undefined'))
+		vertices = object.children[0].geometry.attributes.position.array;
+	else
+			console.error("Failed to load model with name " + modelName + ", it has no vertices!");
+
+	if(!(typeof object.children[0].name === 'undefined'))
+		modelName = object.children[0].name;
+
+	if(!(typeof object.children[0].geometry.index === 'undefined'))
+		indices = object.children[0].geometry.index.array;
+
+	if(!(typeof object.children[0].geometry.attributes.normal === 'undefined'))
+		normals = object.children[0].geometry.attributes.normal.array;
+
+	if(!(typeof object.children[0].geometry.attributes.uv === 'undefined'))
+		uvs = object.children[0].geometry.attributes.uv.array;
+	else
+		var uvs = new Float32Array(vertices.length * 1.5);
 
   return {
     modelName,
@@ -56,5 +76,5 @@ function convertToJMF(modelName, vertices, normals, uvs, indices)
 
 function convertFromJMF(content)
 {
-	
+
 }
