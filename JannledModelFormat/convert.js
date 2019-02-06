@@ -1,5 +1,8 @@
 var loader = new THREE.OBJLoader2();
 
+/**
+ *	Note: Depends on OBJLoader2.js and three.js (both from three.js)
+*/
 function convertFromObj(objContent)
 {
 	loader.setUseIndices(true);
@@ -76,5 +79,14 @@ function convertToJMF(modelName, vertices, normals, uvs, indices)
 
 function convertFromJMF(content)
 {
-
+	var h = -1;
+	var o = -1;
+	var v = -1;
+	var n = -1;
+	var t = -1;
+	var f = -1;
+	for(var i=0; i<content.length; i++)
+	{
+		
+	}
 }
