@@ -277,12 +277,35 @@ function loadModelToScene(gl, model, textureUrl, position, rotation, scale)
 }
 
 /**
+ *  @param fileUrl The path of the file to download.
+ *  @param runOnLoad The method to execute after the request has finished. The status contains information if the request was successfull [200].
+ */
+function requestFile(fileUrl, runOnLoad)
+{
+	if(!(runOnLoad instanceof Function))
+	{
+		console.error(" requestFile(fileUrl, runOnLoad) needs a parameter as second argument!");
+		return;
+	}
+
+	var xhr = new XMLHttpRequest();
+	xhr.onreadystatechange = function()
+	{
+		if(this.readyState == 4) runOnLoad(this.responseText, this.status);
+	}
+	xhr.open("GET", fileUrl);
+	xhr.send();
+}
+
+/**
  * Uses JQuery to download a model file which will then be parsed and loaded into the scene
  * @param fileUrl Path of the jmf file to be downloaded
 */
 function loadModelFromUrl(fileUrl, imageUrl)
 {
-	jQuery.get(fileUrl, function(data, status)
+
+
+	requestFile(fileUrl, function(data, status)
 	{
 		console.log('Request: "' + fileUrl + '" [' + status + "].")
 		var model = convertFromJMF(data);
