@@ -1,10 +1,11 @@
-var loader = new THREE.OBJLoader2();
 
 /**
  *	Note: Depends on OBJLoader2.js and three.js (both from three.js)
 */
 function convertFromObj(objContent)
 {
+	var loader = new THREE.OBJLoader2();
+
 	loader.setUseIndices(true);
 	var object = loader.parse(objContent);
 
@@ -33,14 +34,7 @@ function convertFromObj(objContent)
 		uvs = object.children[0].geometry.attributes.uv.array;
 	else
 		var uvs = new Float32Array(vertices.length * 1.5);
-
-  return {
-    modelName,
-    vertices,
-    normals,
-    uvs,
-    indices
-  };
+	return createModel(modelName, vertices, normals, uvs, indices);
 }
 
 function convertToJMF(modelName, vertices, normals, uvs, indices)
@@ -85,8 +79,35 @@ function convertFromJMF(content)
 	var n = -1;
 	var t = -1;
 	var f = -1;
+
+	var lines = content.split('\n');
+
 	for(var i=0; i<content.length; i++)
 	{
 		
 	}
+
+	return createModel();
+}
+
+function createModel(modelName, vertices, normals, uvs, indices)
+{
+	if(typeof modelName === 'undefined')
+		modelName = "Model";
+	if(typeof vertices === 'undefined')
+		vertices = new Float32Array(0);;
+	if(typeof normals === 'undefined')
+		normals = new Float32Array(0);
+	if(typeof uvs === 'undefined')
+		uvs = new Float32Array(0);
+	if(typeof indices === 'undefined')
+		indices = new Float32Array(0);
+
+	return {
+      modelName,
+      vertices,
+      normals,
+      uvs,
+      indices
+    };
 }

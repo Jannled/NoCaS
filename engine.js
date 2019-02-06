@@ -114,6 +114,9 @@ function main()
 	requestAnimationFrame(render);
 }
 
+/**
+ *  Uploads the model to the GPU
+ */
 function loadModel(gl, positions, normals, texCoords, indices, textureUrl, position, rotation, scale)
 {
 	//Build the positions buffer (Attrib 0)
@@ -240,7 +243,6 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl, posit
 
 			// Tell the shader we bound the texture to texture unit 0
 			gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
-
 			{
 				gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 			}
@@ -248,7 +250,7 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl, posit
 	};
 }
 
-function loadModelToScene(gl, vertices, normals, texCoords, indices, textureUrl, position, rotation, scale)
+function loadModelToScene(gl, model, textureUrl, position, rotation, scale)
 {
 	if(position == null)
 		position = [0, 0, 0];
@@ -257,28 +259,34 @@ function loadModelToScene(gl, vertices, normals, texCoords, indices, textureUrl,
 	if(scale == null)
 		scale = [0, 0, 0];
 
-	if(Array.isArray(position) && (Array.isArray(rotation)) && Array.isArray(scale) && Array.isArray(vertices) && Array.isArray(normals) && Array.isArray(indices))
-		console.info("Loading model with " + (vertices.length/3) + " vertices, " + (indices.length/3) + ' indices with the texture url: "' + textureUrl + '"."');
+	if(typeof model === 'undefined')
+	{
+		console.warn("Model is undefined, perhaps something went wrong while loading it?");
+		return;
+	}
+
+	if(Array.isArray(position) && Array.isArray(rotation) && Array.isArray(scale) && (model.vertices instanceof Float32Array) && (model.normals instanceof Float32Array) && (model.indices instanceof Float32Array))
+		console.info("Loading model with " + (model.vertices.length/3) + " vertices, " + (model.indices.length/3) + ' indices with the texture url: "' + textureUrl + '".');
 	else
 	{
 		console.warn("Failed to load model, invalid params!");
 		return;
 	}
 
-	scene[scene.length] = loadModel(gl, vertices, normals, texCoords, indices, textureUrl, position, rotation, scale);
+	scene[scene.length] = loadModel(gl, model.vertices, model.normals, model.texCoords, model.indices, textureUrl, position, rotation, scale);
 }
 
 /**
  * Uses JQuery to download a model file which will then be parsed and loaded into the scene
- * @param fileUrl Path of the obj file to be downloaded
+ * @param fileUrl Path of the jmf file to be downloaded
 */
-function loadModelFromUrl(fileUrl)
+function loadModelFromUrl(fileUrl, imageUrl)
 {
 	jQuery.get(fileUrl, function(data, status)
 	{
 		console.log('Request: "' + fileUrl + '" [' + status + "].")
-		var model = convertFromObj(data);
-		loadModelToScene(gl, model.vertices, model.normals, model.uvs, model.indices, 'Entwurf Spielbrett NoCaS.jpeg', [0, 0, -6], [0, 0, 0]);
+		var model = convertFromJMF(data);
+		loadModelToScene(gl, model, imageUrl, [0, 0, -6], [0, 0, 0]);
 	});
 }
 

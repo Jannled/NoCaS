@@ -2,6 +2,6 @@ main();
 
 function main()
 {
-	loadModelFromUrl('models/cube.obj');
+	loadModelFromUrl('models/GenericCube.jmf', 'cubetexture.png');
 	newSize();
 }
