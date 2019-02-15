@@ -143,6 +143,13 @@ function convertFromJMF(content)
 	}
 }
 
+/**
+ * @param modelName
+ * @param{Float32Array} vertices
+ * @param{Float32Array} normals
+ * @param{Float32Array} uvs
+ * @param{Float32Array} indices
+*/
 function createModel(modelName, vertices, normals, uvs, indices)
 {
 	if(typeof modelName === 'undefined')

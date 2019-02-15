@@ -149,7 +149,7 @@ function loadModel(gl, positions, normals, texCoords, indices, textureUrl, posit
 	const border = 0;
 	const srcFormat = gl.RGBA;
 	const srcType = gl.UNSIGNED_BYTE;
-	const pixel = new Uint8Array([255, 0, 255, 255]);
+	const pixel = new Uint8Array([255, 0, 255, 255]); //Color of unloaded texture
 	gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
 								width, height, border, srcFormat, srcType,
 								pixel);
@@ -257,7 +257,7 @@ function loadModelToScene(gl, model, textureUrl, position, rotation, scale)
 	if(rotation == null)
 		rotation = [0, 0, 0];
 	if(scale == null)
-		scale = [0, 0, 0];
+		scale = [1, 1, 1];
 
 	if(typeof model === 'undefined')
 	{
@@ -273,18 +273,19 @@ function loadModelToScene(gl, model, textureUrl, position, rotation, scale)
 		return;
 	}
 
-	scene[scene.length] = loadModel(gl, model.vertices, model.normals, model.texCoords, model.indices, textureUrl, position, rotation, scale);
+	scene[scene.length] = loadModel(gl, model.vertices, model.normals, model.uvs, model.indices, textureUrl, position, rotation, scale);
 }
 
 /**
  *  @param fileUrl The path of the file to download.
- *  @param runOnLoad The method to execute after the request has finished. The status contains information if the request was successfull [200].
+ *  @param runOnLoad{Function} The method to execute after the request has finished. The status contains information if the request was successfull [200].
  */
-function requestFile(fileUrl, runOnLoad)
+function requestFile(fileUrl, /*Function*/runOnLoad)
 {
 	if(!(runOnLoad instanceof Function))
 	{
-		console.error(" requestFile(fileUrl, runOnLoad) needs a parameter as second argument!");
+
+		console.error(" requestFile(fileUrl, runOnLoad) needs a function as second argument!");
 		return;
 	}
 
@@ -301,15 +302,13 @@ function requestFile(fileUrl, runOnLoad)
  * Uses JQuery to download a model file which will then be parsed and loaded into the scene
  * @param fileUrl Path of the jmf file to be downloaded
 */
-function loadModelFromUrl(fileUrl, imageUrl)
+function loadModelFromUrl(fileUrl, imageUrl, position, rotation, scale)
 {
-
-
 	requestFile(fileUrl, function(data, status)
 	{
 		console.log('Request: "' + fileUrl + '" [' + status + "].")
 		var model = convertFromJMF(data);
-		loadModelToScene(gl, model, imageUrl, [0, 0, -6], [0, 0, 0]);
+		loadModelToScene(gl, model, imageUrl, position, rotation, scale);
 	});
 }
 
