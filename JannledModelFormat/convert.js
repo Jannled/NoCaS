@@ -73,21 +73,74 @@ function convertToJMF(modelName, vertices, normals, uvs, indices)
 
 function convertFromJMF(content)
 {
-	var h = -1;
-	var o = -1;
-	var v = -1;
-	var n = -1;
-	var t = -1;
-	var f = -1;
+	const hpos = 0;
+	const opos = 1;
+	const vpos = 2;
+	const npos = 3;
+	const tpos = 4;
+	const fpos = 5
+	var h = "--NOT FOUND--";
+	var o = "--NOT FOUND--";
+	var v = "--NOT FOUND--";
+	var n = "--NOT FOUND--";
+	var t = "--NOT FOUND--";
+	var f = "--NOT FOUND--";
 
 	var lines = content.split('\n');
+	try{
+		//Parse the JMF-header
+		lines[0].trim();
+		if(lines[0].charAt(0) !== '#') throw "Missing #-Key";
+		h=lines[0];
 
-	for(var i=0; i<content.length; i++)
-	{
-		
+		//Parse the object section
+		lines[opos].trim();
+		if(lines[opos].charAt(0) !== 'o') throw "Missing o-Key";
+		var begin = lines[opos].indexOf('{');
+		var end = lines[opos].lastIndexOf('}');
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in object section!";
+		o=lines[opos].substr(begin+1, (end-2));
+
+		//Parse the vertice section
+		lines[vpos].trim();
+		if(lines[vpos].charAt(0) !== 'v') throw "Missing v-Key";
+		var begin = lines[vpos].indexOf('{');
+		var end = lines[vpos].lastIndexOf('}');
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
+		v = Float32Array.from(lines[vpos].substr(begin+1, (end-2)).split(","));
+
+
+		//Parse the normal section
+		lines[npos].trim();
+		if(lines[npos].charAt(0) !== 'n') throw "Missing n-Key";
+		var begin = lines[npos].indexOf('{');
+		var end = lines[npos].lastIndexOf('}');
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
+		n = Float32Array.from(lines[npos].substr(begin+1, (end-2)).split(","));
+
+
+		//Parse the texture section
+		lines[tpos].trim();
+		if(lines[tpos].charAt(0) !== 't') throw "Missing t-Key";
+		var begin = lines[tpos].indexOf('{');
+		var end = lines[tpos].lastIndexOf('}');
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
+		t = Float32Array.from(lines[tpos].substr(begin+1, (end-2)).split(","));
+
+
+		//Parse the face section
+		lines[fpos].trim();
+		if(lines[fpos].charAt(0) !== 'f') throw "Missing f-Key";
+		var begin = lines[fpos].indexOf('{');
+		var end = lines[fpos].lastIndexOf('}');
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
+		f = Float32Array.from(lines[fpos].substr(begin+1, (end-2)).split(","));
+
+
+		return createModel(o, v, n, t, f);
+	} catch(err) {
+		console.error("An error occured while parsing the model:" + err);
 	}
-
-	return createModel();
 }
 
 function createModel(modelName, vertices, normals, uvs, indices)
