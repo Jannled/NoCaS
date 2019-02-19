@@ -87,7 +87,7 @@ function convertFromJMF(content)
 	var f = "--NOT FOUND--";
 
 	var lines = content.split('\n');
-	try{
+//	try{
 		//Parse the JMF-header
 		lines[0].trim();
 		if(lines[0].charAt(0) !== '#') throw "Missing #-Key";
@@ -138,9 +138,10 @@ function convertFromJMF(content)
 
 
 		return createModel(o, v, n, t, f);
-	} catch(err) {
-		console.error("An error occured while parsing the model:" + err);
-	}
+	/*} catch(err) {
+		console.error("An error occured while parsing the model: " + err);
+		if(console.trace) console.trace();
+	}*/
 }
 
 /**
@@ -149,25 +150,46 @@ function convertFromJMF(content)
  * @param{Float32Array} normals
  * @param{Float32Array} uvs
  * @param{Float32Array} indices
+ * @param{Function} update Method to be called when the gamelogic gets updated
+ * @param{Function} render Method to be called to render itself
 */
-function createModel(modelName, vertices, normals, uvs, indices)
+function createModel(modelName, vertices, normals, uvs, indices, position, rotation, scale, texture, update)
 {
-	if(typeof modelName === 'undefined')
-		modelName = "Model";
-	if(typeof vertices === 'undefined')
-		vertices = new Float32Array(0);;
-	if(typeof normals === 'undefined')
-		normals = new Float32Array(0);
-	if(typeof uvs === 'undefined')
-		uvs = new Float32Array(0);
-	if(typeof indices === 'undefined')
-		indices = new Float32Array(0);
+	var model = {
+		modelName,
+		vertices,
+		normals,
+		uvs,
+		indices,
+		position,
+		rotation,
+		scale,
+		texture : texture,
+		update,
+		render : shadingFlat,
+		ogldata: null
+	};
 
-	return {
-      modelName,
-      vertices,
-      normals,
-      uvs,
-      indices
-    };
+	if(typeof modelName === 'undefined')
+		model.modelName = "Model";
+	if(typeof vertices === 'undefined')
+		model.vertices = new Float32Array(0);
+	if(typeof normals === 'undefined')
+		model.normals = new Float32Array(0);
+	if(typeof uvs === 'undefined')
+		model.uvs = new Float32Array(0);
+	if(typeof indices === 'undefined')
+		model.indices = new Float32Array(0);
+	if((typeof position !== Float32Array) || position.prototype.length !== 3)
+		model.position = new Float32Array(3);
+	if((typeof rotation !== Float32Array) || rotation.prototype.length !== 3)
+		model.rotation = new Float32Array(3);
+	if((typeof scale !== Float32Array) || scale.prototype.length !== 3)
+		model.scale = Float32Array.from([1, 1, 1]);
+	if(typeof update !== Function)
+		model.update = function()
+		{
+
+		};
+	return model;
 }
