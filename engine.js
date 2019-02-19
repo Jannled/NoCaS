@@ -1,74 +1,6 @@
 const displayRatio = 16 / 9;
 var canvas = document.getElementById('glcanvas');
 
-var shadingFlat = function(programInfo, projectionMatrix)
-{
-	const modelViewMatrix = mat4.create();
-	mat4.translate(modelViewMatrix, modelViewMatrix, position);		// amount to translate
-	mat4.rotate(modelViewMatrix, modelViewMatrix, rotation[0], [1, 0, 0]);	// axis to rotate around in radians (Z)
-	mat4.rotate(modelViewMatrix, modelViewMatrix, rotation[1], [0, 1, 0]);	// axis to rotate around in radians (Z)
-	mat4.rotate(modelViewMatrix, modelViewMatrix, rotation[2], [0, 0, 1]);	// axis to rotate around in radians (Z)
-
-	const normalMatrix = mat4.create();
-	mat4.invert(normalMatrix, modelViewMatrix);
-	mat4.transpose(normalMatrix, normalMatrix);
-
-	// Tell WebGL how to pull out the positions from the position
-	// buffer into the vertexPosition attribute
-	{
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertex);
-		gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-	}
-
-	// Tell WebGL how to pull out the texture coordinates from
-	// the texture coordinate buffer into the textureCoord attribute.
-	{
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.textureCoord);
-		gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
-	}
-
-	// Tell WebGL how to pull out the normals from
-	// the normal buffer into the vertexNormal attribute.
-	{
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.normal);
-		gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, 3, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-	}
-
-	// Tell WebGL which indices to use to index the vertices
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
-
-	// Set the shader uniforms
-	gl.uniformMatrix4fv(
-			programInfo.uniformLocations.projectionMatrix,
-			false,
-			projectionMatrix);
-	gl.uniformMatrix4fv(
-			programInfo.uniformLocations.modelViewMatrix,
-			false,
-			modelViewMatrix);
-	gl.uniformMatrix4fv(
-			programInfo.uniformLocations.normalMatrix,
-			false,
-			normalMatrix);
-
-	// Specify the texture to map onto the faces.
-
-	// Tell WebGL we want to affect texture unit 0
-	gl.activeTexture(gl.TEXTURE0);
-
-	// Bind the texture to texture unit 0
-	gl.bindTexture(gl.TEXTURE_2D, this.texture);
-
-	// Tell the shader we bound the texture to texture unit 0
-	gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
-	{
-		gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
-	}
-};
-
 /** Vertex shader */
 const vsSource = `
 	attribute vec4 aVertexPosition;
@@ -188,7 +120,7 @@ function updateScene()
 {
 	for(model in scene)
 	{
-		model.update();
+		//model.update();
 	}
 }
 
@@ -274,44 +206,38 @@ function drawScene(gl, programInfo, deltaTime) {
  			 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
  		}
  	};
- 	image.src = model.texture;
+ 	image.src = model.textureUrl;
 
- 	model.update = function update() {};
- 	model.render = shadingFlat;
- 	model.ogldata = {
- 		positionBuffer,
- 		normalBuffer,
- 		textureCoordBuffer,
- 		indexBuffer,
- 		textureBuffer
- 	};
+ 	model.ogldata.positionBuffer = positionBuffer;
+ 	model.ogldata.normalBuffer = normalBuffer;
+ 	model.ogldata.textureCoordBuffer = textureCoordBuffer;
+ 	model.ogldata.indexBuffer = indexBuffer;
+	model.ogldata.textureBuffer = textureBuffer;
+
 	return model; //For convenience
  }
 
 function loadModelToScene(gl, model)
 {
-	if(model.position == null)
-		model.position = [0, 0, 0];
-	if(model.rotation == null)
-		model.rotation = [0, 0, 0];
-	if(model.scale == null)
-		model.scale = [1, 1, 1];
-
 	if(typeof model === 'undefined')
 	{
 		console.warn("Model is undefined, perhaps something went wrong while loading it?");
 		return;
 	}
-
-	if((model.vertices instanceof Float32Array) && (model.normals instanceof Float32Array) && (model.indices instanceof Float32Array))
+	if((model.position instanceof Float32Array) && (model.position.length == 3) &&
+		(model.rotation instanceof Float32Array) && (model.rotation.length == 3) &&
+		(model.scale instanceof Float32Array) && (model.scale.length == 3) &&
+		(model.vertices instanceof Float32Array) && (model.normals instanceof Float32Array) &&
+		(model.uvs instanceof Float32Array) && (model.indices instanceof Float32Array))
+	{
 		console.info("Loading model with " + (model.vertices.length/3) + " vertices, " + (model.indices.length/3) + ' indices with the texture url: "' + model.texture + '".');
+		scene[scene.length] = loadModel(gl, model);
+	}
 	else
 	{
 		console.warn("Failed to load model, invalid params!");
 		return;
 	}
-
-	scene[scene.length] = loadModel(gl, model);
 }
 
 /**
@@ -345,8 +271,9 @@ function loadModelFromUrl(fileUrl, imageUrl, position, rotation, scale)
 	requestFile(fileUrl, function(data, status)
 	{
 		console.log('Request: "' + fileUrl + '" [' + status + "].")
-		var model = convertFromJMF(data);
-		loadModelToScene(gl, model, imageUrl, position, rotation, scale);
+		var mesh = convertFromJMF(data);
+		var model = new Model(mesh.name, mesh.vertices, mesh.normals, mesh.uvs, mesh.indices, imageUrl, position, rotation, scale);
+		loadModelToScene(gl, model);
 	});
 }
 
