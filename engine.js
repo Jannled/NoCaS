@@ -1,6 +1,15 @@
 const displayRatio = 16 / 9;
 var canvas = document.getElementById('glcanvas');
 
+canvas.requestPointerLock = canvas.requestPointerLock ||
+			     canvas.mozRequestPointerLock ||
+			     canvas.webkitRequestPointerLock;
+
+// Ask the browser to release the pointer
+document.exitPointerLock = document.exitPointerLock ||
+			   document.mozExitPointerLock ||
+			   document.webkitExitPointerLock;
+
 /** Vertex shader */
 const vsSource = `
 	attribute vec4 aVertexPosition;
@@ -120,7 +129,7 @@ function updateScene()
 {
 	for(model in scene)
 	{
-		//model.update();
+		scene[model].update();
 	}
 }
 
@@ -343,4 +352,9 @@ function goFullscreen()
 	} else if (gameArea.msRequestFullscreen) { /* IE/Edge */
 		gameArea.msRequestFullscreen();
 	}
+}
+
+function lockMouse()
+{
+	canvas.requestPointerLock();
 }

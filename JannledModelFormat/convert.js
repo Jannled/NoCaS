@@ -222,7 +222,9 @@ class Model
 		if(update instanceof Function)
 			this.update = update;
 		else
-			this.update = function() {};
+			this.update = function() {
+				this.rotation[1] += 0.01;
+			};
 
 		this.render = function(programInfo, projectionMatrix)
 		{
