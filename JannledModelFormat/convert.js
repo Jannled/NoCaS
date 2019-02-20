@@ -15,10 +15,13 @@ function convertFromObj(objContent)
 	var normals = [];
 	var uvs = [];
 
+	if(object.children.length < 1)
+		console.error("No model was loaded by Three.js, please make sure your model is in the proper obj format!");
+
 	if(!(typeof object.children[0].geometry.attributes.position === 'undefined'))
 		vertices = object.children[0].geometry.attributes.position.array;
 	else
-			console.error("Failed to load model with name " + modelName + ", it has no vertices!");
+		console.error("Failed to load model with name " + modelName + ", it has no vertices!");
 
 	if(!(typeof object.children[0].name === 'undefined'))
 		modelName = object.children[0].name;
@@ -33,7 +36,7 @@ function convertFromObj(objContent)
 		uvs = object.children[0].geometry.attributes.uv.array;
 	else
 		var uvs = new Float32Array(vertices.length * 1.5);
-	return createModel(modelName, vertices, normals, uvs, indices);
+	return new Model(modelName, vertices, normals, uvs, indices);
 }
 
 function convertToJMF(modelName, vertices, normals, uvs, indices)
@@ -133,7 +136,7 @@ function convertFromJMF(content)
 		var begin = lines[fpos].indexOf('{');
 		var end = lines[fpos].lastIndexOf('}');
 		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
-		f = Float32Array.from(lines[fpos].substr(begin+1, (end-2)).split(","));
+		f = Uint32Array.from(lines[fpos].substr(begin+1, (end-2)).split(","));
 
 		return {
 			name: o,
@@ -184,11 +187,11 @@ class Model
 			this.uvs = Float32Array.from(uvs);
 		else this.uvs = new Float32Array(0);
 
-		if(indices instanceof Float32Array)
+		if(indices instanceof Uint32Array)
 			this.indices = indices;
 		else if(Array.isArray(indices))
-			this.indices = Float32Array.from(indices);
-		else this.indices = new Float32Array(0);
+			this.indices = Uint32Array.from(indices);
+		else this.indices = new Uint32Array(0);
 
 		//Texture check??
 		this.textureUrl = texture;

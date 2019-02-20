@@ -237,7 +237,7 @@ function loadModelToScene(gl, model)
 		(model.rotation instanceof Float32Array) && (model.rotation.length == 3) &&
 		(model.scale instanceof Float32Array) && (model.scale.length == 3) &&
 		(model.vertices instanceof Float32Array) && (model.normals instanceof Float32Array) &&
-		(model.uvs instanceof Float32Array) && (model.indices instanceof Float32Array))
+		(model.uvs instanceof Float32Array) && (model.indices instanceof Uint32Array))
 	{
 		console.info("Loading model with " + (model.vertices.length/3) + " vertices, " + (model.indices.length/3) + ' indices with the texture url: "' + model.texture + '".');
 		scene[scene.length] = loadModel(gl, model);
@@ -358,3 +358,52 @@ function lockMouse()
 {
 	canvas.requestPointerLock();
 }
+
+/*
+element.requestPointerLock = element.requestPointerLock ||
+			     element.mozRequestPointerLock ||
+			     element.webkitRequestPointerLock;
+// Ask the browser to lock the pointer
+element.requestPointerLock();
+
+// Ask the browser to release the pointer
+document.exitPointerLock = document.exitPointerLock ||
+			   document.mozExitPointerLock ||
+			   document.webkitExitPointerLock;
+document.exitPointerLock();
+
+// Hook pointer lock state change events
+document.addEventListener('pointerlockchange', changeCallback, false);
+document.addEventListener('mozpointerlockchange', changeCallback, false);
+document.addEventListener('webkitpointerlockchange', changeCallback, false);
+
+// Hook mouse move events
+document.addEventListener("mousemove", this.moveCallback, false);
+
+if (document.pointerLockElement === requestedElement ||
+  document.mozPointerLockElement === requestedElement ||
+  document.webkitPointerLockElement === requestedElement) {
+  // Pointer was just locked
+  // Enable the mousemove listener
+  document.addEventListener("mousemove", this.moveCallback, false);
+} else {
+  // Pointer was just unlocked
+  // Disable the mousemove listener
+  document.removeEventListener("mousemove", this.moveCallback, false);
+  this.unlockHook(this.element);
+}
+
+event.movementX = currentCursorPositionX - previousCursorPositionX;
+event.movementY = currentCursorPositionY - previousCursorPositionY;
+
+function moveCallback(e) {
+  var movementX = e.movementX ||
+      e.mozMovementX          ||
+      e.webkitMovementX       ||
+      0,
+  movementY = e.movementY ||
+      e.mozMovementY      ||
+      e.webkitMovementY   ||
+      0;
+}
+*/

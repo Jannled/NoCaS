@@ -12,7 +12,53 @@
 </head>
 
 <body>
+	<div id='dropzone'>
+		<!-- <input type="text" name="name" value="test.txt"> -->
+		<textarea id="objFile" rows="30" cols="60" playceholder="Copy your OBJ here"></textarea>
+		<button onclick="convert()">Download</button>
+	</div>
+
 	<script type="text/javascript">
+		var dropZone = document.getElementById('objFile');
+		function dateiauswahl(evt)
+		{
+			//evt.stopPropagation();
+			evt.preventDefault();
+			var datei = evt.dataTransfer.files[0]; // FileList Objekt
+			if(evt.dataTransfer.files.length < 1)
+			{
+				console.error("No file was selected!");
+				return;
+			}
+			else if(evt.dataTransfer.files.length > 1)
+				console.warn("You selected " + evt.dataTransfer.files.length + " files, but only the first one will be loaded!");
+
+			console.log(datei.path);
+
+			var reader = new FileReader();
+			reader.onload = (function(theFile)
+			{
+				console.log(theFile.target);
+			});
+			reader.readAsText(gewaehlteDateien[0]);
+		}
+
+		function handleDragOver(evt) {
+			//evt.stopPropagation();
+			evt.preventDefault();
+			//evt.dataTransfer.dropEffect = 'link';
+			dropZone.style.boxShadow = "3px 3px 3px green";
+		}
+
+		function handleDragLeave(evt) {
+			dropZone.style.boxShadow = "";
+		}
+
+		// Initialisiere Drag&Drop EventListener
+		dropZone.addEventListener('dragover', handleDragOver, false);
+		dropZone.addEventListener('dragleave', handleDragLeave, false);
+		dropZone.addEventListener('drop', dateiauswahl, false);
+
 
 		function convert()
 		{
@@ -32,22 +78,19 @@
 
 		function saveToBlob(content, fileName)
 		{
-	    var a = document.createElement("a");
-	    document.body.appendChild(a);
-	    a.style = "display: none";
-      var blob = new Blob([content], {type: "octet/stream"});
-      var url = window.URL.createObjectURL(blob);
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      window.URL.revokeObjectURL(url);
+		    var a = document.createElement("a");
+		    document.body.appendChild(a);
+		    a.style = "display: none";
+			var blob = new Blob([content], {type: "octet/stream"});
+			var url = window.URL.createObjectURL(blob);
+			a.href = url;
+			a.download = fileName;
+			a.click();
+			window.URL.revokeObjectURL(url);
 			document.body.removeChild(a);
-    }
+		}
 
 	</script>
-		<!-- <input type="text" name="name" value="test.txt"> -->
-		<textarea id="objFile" rows="30" cols="60" playceholder="Copy your OBJ here"></textarea>
-		<button onclick="convert()">Download</button>
 </body>
 
 </html>
