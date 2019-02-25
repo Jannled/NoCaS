@@ -12,6 +12,9 @@ document.exitPointerLock = document.exitPointerLock ||
 
 /** Vertex shader */
 const vsSource = `
+	layout (location = 0) in vec4 vertexPosition;
+	layout (location = 1) in vec3 vertexNormal
+	layout (location = 3) in vec2 textureCoord
 	attribute vec4 aVertexPosition;
 	attribute vec3 aVertexNormal;
 	attribute vec2 aTextureCoord;
@@ -24,8 +27,8 @@ const vsSource = `
 	varying highp vec3 vLighting;
 
 	void main(void) {
-		gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-		vTextureCoord = aTextureCoord;
+		gl_Position = uProjectionMatrix * uModelViewMatrix * vertexPosition;
+		vTextureCoord = textureCoord;
 
 		// Apply lighting effect
 
@@ -33,7 +36,7 @@ const vsSource = `
 		highp vec3 directionalLightColor = vec3(1, 1, 1);
 		highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
 
-		highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+		highp vec4 transformedNormal = uNormalMatrix * vec4(vertexNormal, 1.0);
 
 		highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
 		vLighting = ambientLight + (directionalLightColor * directional);
@@ -55,6 +58,77 @@ const fsSource = `
 var currentTime = 0.0;
 var gl;
 var scene = [];
+
+/**
+ *
+ */
+class Shader
+{
+	constructor(gl, shaderSource, shaderType)
+	{
+		if(shaderType !== gl.VERTEX_SHADER && shaderType !== gl.FRAGMENT_SHADER)
+			console.error("Invalid Shader type passed!");
+		const shaderID = gl.createShader(shaderType);
+		gl.shaderSource(shaderID, shaderSource);
+		gl.compileShader(shaderID);
+
+		if (!gl.getShaderParameter(shaderID, gl.COMPILE_STATUS)) {
+			console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shaderID));
+			gl.deleteShader(shaderID);
+		}
+
+		this.shaderID = shaderID;
+	}
+}
+
+/**
+ * @param{} vertexShader The Vertex Shader
+ * @param{} fragmentShader The FragmentShader
+ */
+class ShaderProgram
+{
+	constructor(gl, vertexShader, fragmentShader)
+	{
+		if(vertexShader instanceof Shader && fragmentShader instanceof Shader)
+		{
+			this.vertexShader = vertexShader;
+			this.fragmentShader = fragmentShader;
+
+			// Create the shader program
+			const shaderProgramID = gl.createProgram();
+			gl.attachShader(shaderProgramID, vertexShader.shaderID);
+			gl.attachShader(shaderProgramID, fragmentShader.shaderID);
+			gl.linkProgram(shaderProgramID);
+
+			// If creating the shader program failed, alert
+			if (!gl.getProgramParameter(shaderProgramID, gl.LINK_STATUS)) {
+				console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgramID));
+			}
+			this.shaderProgramID = shaderProgramID;
+		}
+		else console.error("Could not create ShaderProgram, at least one of the Shaders is invalid!");
+	}
+
+/**
+ * Get attribute by name from ShaderProgram
+ * @param gl The OpenGL Instance
+ * @param name The name of the attribute
+ */
+	getAttribLocation(gl, name)
+	{
+		return gl.getAttribLocation(this.shaderProgramID, name);
+	}
+
+	/**
+	 * Get uniform by name from ShaderProgram
+	 * @param gl The OpenGL Instance
+	 * @param name The name of the uniform
+	 */
+	getUniformLocation(gl, name)
+	{
+		return gl.getUniformLocation(this.shaderProgramID, name);
+	}
+}
 
 main();
 
@@ -85,7 +159,7 @@ function main()
 
 	// Initialize a shader program; this is where all the lighting
 	// for the vertices and so forth is established.
-	const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+	const shaderProgram = new ShaderProgram(gl, new Shader(gl, vsSource, gl.VERTEX_SHADER), new Shader(gl, fsSource, gl.FRAGMENT_SHADER));
 
 	// Collect all the info needed to use the shader program.
 	// Look up which attributes our shader program is using
@@ -94,15 +168,15 @@ function main()
 	const programInfo = {
 		program: shaderProgram,
 		attribLocations: {
-			vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-			vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
-			textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
+			vertexPosition: shaderProgram.getAttribLocation(gl, 'aVertexPosition'),
+			vertexNormal: shaderProgram.getAttribLocation(gl, 'aVertexNormal'),
+			textureCoord: shaderProgram.getAttribLocation(gl, 'aTextureCoord'),
 		},
 		uniformLocations: {
-			projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-			modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-			normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
-			uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
+			projectionMatrix: shaderProgram.getUniformLocation(gl, 'uProjectionMatrix'),
+			modelViewMatrix: shaderProgram.getUniformLocation(gl, 'uModelViewMatrix'),
+			normalMatrix: shaderProgram.getUniformLocation(gl, 'uNormalMatrix'),
+			uSampler: shaderProgram.getUniformLocation(gl, 'uSampler'),
 		},
 	};
 
@@ -118,7 +192,6 @@ function main()
 
 		updateScene();
 		drawScene(gl, programInfo, deltaTime);
-
 		requestAnimationFrame(draw);
 	}
 	requestAnimationFrame(draw);
@@ -152,7 +225,7 @@ function drawScene(gl, programInfo, deltaTime) {
 	mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
 
 	// Tell WebGL to use our program when drawing
-	gl.useProgram(programInfo.program);
+	gl.useProgram(programInfo.program.shaderProgramID);
 
 	for(var i=0; i<scene.length; i++)
 	{
@@ -185,6 +258,7 @@ function drawScene(gl, programInfo, deltaTime) {
  	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
  	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.indices), gl.STATIC_DRAW);
 
+	// Load the Texture data
  	const textureBuffer = gl.createTexture();
  	gl.bindTexture(gl.TEXTURE_2D, textureBuffer);
 
@@ -288,41 +362,6 @@ function loadModelFromUrl(fileUrl, imageUrl, position, rotation, scale)
 
 function isPowerOf2(value) {
 	return (value & (value - 1)) == 0;
-}
-
-/** Create Shader program from shader source */
-function initShaderProgram(gl, vsSource, fsSource) {
-	const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-	const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
-
-	// Create the shader program
-	const shaderProgram = gl.createProgram();
-	gl.attachShader(shaderProgram, vertexShader);
-	gl.attachShader(shaderProgram, fragmentShader);
-	gl.linkProgram(shaderProgram);
-
-	// If creating the shader program failed, alert
-	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-		alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
-		return null;
-	}
-
-	return shaderProgram;
-}
-
-/** Load a single shader into memory and compiles it */
-function loadShader(gl, type, source) {
-	const shader = gl.createShader(type);
-	gl.shaderSource(shader, source);
-	gl.compileShader(shader);
-
-	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-		alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
-		gl.deleteShader(shader);
-		return null;
-	}
-
-	return shader;
 }
 
 window.scrollBy(0,1); //Safari fix
