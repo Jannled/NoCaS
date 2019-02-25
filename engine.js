@@ -12,35 +12,34 @@ document.exitPointerLock = document.exitPointerLock ||
 
 /** Vertex shader */
 const vsSource = `
-	layout (location = 0) in vec4 vertexPosition;
-	layout (location = 1) in vec3 vertexNormal
-	layout (location = 3) in vec2 textureCoord
-	attribute vec4 aVertexPosition;
-	attribute vec3 aVertexNormal;
-	attribute vec2 aTextureCoord;
+attribute vec4 aVertexPosition;
+attribute vec3 aVertexNormal;
+attribute vec2 aTextureCoord;
 
-	uniform mat4 uNormalMatrix;
-	uniform mat4 uModelViewMatrix;
-	uniform mat4 uProjectionMatrix;
+uniform vec3 ambientLight;
 
-	varying highp vec2 vTextureCoord;
-	varying highp vec3 vLighting;
+uniform mat4 uNormalMatrix;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
 
-	void main(void) {
-		gl_Position = uProjectionMatrix * uModelViewMatrix * vertexPosition;
-		vTextureCoord = textureCoord;
+varying highp vec2 vTextureCoord;
+varying highp vec3 vLighting;
 
-		// Apply lighting effect
+void main(void) {
+	gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+	vTextureCoord = aTextureCoord;
 
-		highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-		highp vec3 directionalLightColor = vec3(1, 1, 1);
-		highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+	// Apply lighting effect
 
-		highp vec4 transformedNormal = uNormalMatrix * vec4(vertexNormal, 1.0);
+	highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+	highp vec3 directionalLightColor = vec3(1, 1, 1);
+	highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
 
-		highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-		vLighting = ambientLight + (directionalLightColor * directional);
-	}`;
+	highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+
+	highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+	vLighting = ambientLight + (directionalLightColor * directional);
+}`;
 
 /** Fragment shader */
 const fsSource = `
@@ -57,7 +56,6 @@ const fsSource = `
 
 var currentTime = 0.0;
 var gl;
-var scene = [];
 
 /**
  *
@@ -69,7 +67,7 @@ class Shader
 		if(shaderType !== gl.VERTEX_SHADER && shaderType !== gl.FRAGMENT_SHADER)
 			console.error("Invalid Shader type passed!");
 		const shaderID = gl.createShader(shaderType);
-		gl.shaderSource(shaderID, shaderSource);
+		gl.shaderSource(shaderID, shaderSource.trim());
 		gl.compileShader(shaderID);
 
 		if (!gl.getShaderParameter(shaderID, gl.COMPILE_STATUS)) {
@@ -129,6 +127,204 @@ class ShaderProgram
 		return gl.getUniformLocation(this.shaderProgramID, name);
 	}
 }
+
+/**
+ *
+ */
+class Scene
+{
+	constructor()
+	{
+		this.models = [];
+		this.ambientLight = Float32Array.from([0.3, 0.3, 0.3]);
+	}
+
+	/** Update the physics and gamelogic */
+	update(gl, deltaTime)
+	{
+		for(var i=0; i<this.models.length; i++)
+		{
+			this.models[i].update();
+		}
+	}
+
+	render(gl, programInfo, deltaTime)
+	{
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);	// Clear to black, fully opaque
+		gl.clearDepth(1.0);								 // Clear everything
+		gl.enable(gl.DEPTH_TEST);					 // Enable depth testing
+		gl.depthFunc(gl.LEQUAL);						// Near things obscure far things
+
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+		const fieldOfView = 45 * Math.PI / 180;	 // in radians
+		const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+		const zNear = 0.1;
+		const zFar = 100.0;
+		const projectionMatrix = mat4.create();
+
+		// note: glmatrix.js always has the first argument as the destination to receive the result.
+		mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+
+		// Tell WebGL to use our program when drawing
+		gl.useProgram(programInfo.program.shaderProgramID);
+
+		for(var i=0; i<this.models.length; i++)
+		{
+			this.models[i].render(programInfo, projectionMatrix);
+		}
+	}
+}
+
+/**
+ * @param modelName
+ * @param{Float32Array} vertices
+ * @param{Float32Array} normals
+ * @param{Float32Array} uvs
+ * @param{Float32Array} indices
+ * @param texture Link to the texture to be used.
+ * @param{Float32Array} position
+ * @param{Float32Array} rotation
+ * @param{Float32Array} scale
+ * @param{Function} update Method to be called when the gamelogic gets updated.
+*/
+class Model
+{
+	constructor(modelName, vertices, normals, uvs, indices, texture, position, rotation, scale, update)
+	{
+		this.modelName = modelName;
+
+		if(vertices instanceof Float32Array)
+			this.vertices = vertices;
+		else if(Array.isArray(vertices))
+			this.vertices = Float32Array.from(vertices);
+		else this.vertices = new Float32Array(0);
+
+		if(normals instanceof Float32Array)
+			this.normals = normals;
+		else if(Array.isArray(normals))
+			this.normals = Float32Array.from(normals);
+		else this.normals = new Float32Array(0);
+
+		if(uvs instanceof Float32Array)
+			this.uvs = uvs;
+		else if(Array.isArray(uvs))
+			this.uvs = Float32Array.from(uvs);
+		else this.uvs = new Float32Array(0);
+
+		if(indices instanceof Uint32Array)
+			this.indices = indices;
+		else if(Array.isArray(indices))
+			this.indices = Uint32Array.from(indices);
+		else this.indices = new Uint32Array(0);
+
+		//Texture check??
+		this.textureUrl = texture;
+
+		if(position instanceof Float32Array && position.length == 3)
+			this.position = position;
+		else if(Array.isArray(position) && position.length == 3)
+			this.position = Float32Array.from(position);
+		else this.position = new Float32Array(3);
+
+		if(rotation instanceof Float32Array && rotation.length == 3)
+			this.rotation = rotation;
+		else if(Array.isArray(rotation) && rotation.length == 3)
+			this.rotation = Float32Array.from(rotation);
+		else this.rotation = new Float32Array(3);
+
+		if(scale instanceof Float32Array && scale.length == 3)
+			this.scale = scale;
+		else if(Array.isArray(scale) && scale.length == 3)
+			this.scale = Float32Array.from(scale);
+		else this.scale = Float32Array.from([1, 1, 1]);
+
+		this.ogldata = {
+			positionBuffer: -1,
+			normalBuffer: -1,
+			textureCoordBuffer: -1,
+			indexBuffer: -1,
+			textureBuffer: -1
+		};
+
+		if(update instanceof Function)
+			this.update = update;
+		else
+			this.update = function() {
+				this.rotation[1] += 0.01;
+			};
+
+		this.render = function(programInfo, projectionMatrix)
+		{
+			const modelViewMatrix = mat4.create();
+			mat4.translate(modelViewMatrix, modelViewMatrix, this.position);		// amount to translate
+			mat4.rotate(modelViewMatrix, modelViewMatrix, this.rotation[0], [1, 0, 0]);	// axis to rotate around in radians (X)
+			mat4.rotate(modelViewMatrix, modelViewMatrix, this.rotation[1], [0, 1, 0]);	// axis to rotate around in radians (Y)
+			mat4.rotate(modelViewMatrix, modelViewMatrix, this.rotation[2], [0, 0, 1]);	// axis to rotate around in radians (Z)
+
+			const normalMatrix = mat4.create();
+			mat4.invert(normalMatrix, modelViewMatrix);
+			mat4.transpose(normalMatrix, normalMatrix);
+
+			// Tell WebGL how to pull out the positions from the position
+			// buffer into the vertexPosition attribute
+			{
+				gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.positionBuffer);
+				gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+				gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+			}
+
+			// Tell WebGL how to pull out the texture coordinates from
+			// the texture coordinate buffer into the textureCoord attribute.
+			{
+				gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.textureCoordBuffer);
+				gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
+				gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+			}
+
+			// Tell WebGL how to pull out the normals from
+			// the normal buffer into the vertexNormal attribute.
+			{
+				gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.normalBuffer);
+				gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, 3, gl.FLOAT, false, 0, 0);
+				gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
+			}
+
+			// Tell WebGL which indices to use to index the vertices
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ogldata.indexBuffer);
+
+			// Set the shader uniforms
+			gl.uniformMatrix4fv(
+					programInfo.uniformLocations.projectionMatrix,
+					false,
+					projectionMatrix);
+			gl.uniformMatrix4fv(
+					programInfo.uniformLocations.modelViewMatrix,
+					false,
+					modelViewMatrix);
+			gl.uniformMatrix4fv(
+					programInfo.uniformLocations.normalMatrix,
+					false,
+					normalMatrix);
+
+			// Specify the texture to map onto the faces.
+
+			// Tell WebGL we want to affect texture unit 0
+			gl.activeTexture(gl.TEXTURE0);
+
+			// Bind the texture to texture unit 0
+			gl.bindTexture(gl.TEXTURE_2D, this.ogldata.textureBuffer);
+
+			// Tell the shader we bound the texture to texture unit 0
+			gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
+			{
+				gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+			}
+		};
+	}
+}
+
+var activeScene = new Scene();
 
 main();
 
@@ -190,47 +386,11 @@ function main()
 		const deltaTime = timestamp - then;
 		then = timestamp;
 
-		updateScene();
-		drawScene(gl, programInfo, deltaTime);
+		activeScene.update(gl, deltaTime);
+		activeScene.render(gl, programInfo, deltaTime);
 		requestAnimationFrame(draw);
 	}
 	requestAnimationFrame(draw);
-}
-
-/** Update the physics and gamelogic */
-function updateScene()
-{
-	for(model in scene)
-	{
-		scene[model].update();
-	}
-}
-
-/** Draw the scene */
-function drawScene(gl, programInfo, deltaTime) {
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);	// Clear to black, fully opaque
-	gl.clearDepth(1.0);								 // Clear everything
-	gl.enable(gl.DEPTH_TEST);					 // Enable depth testing
-	gl.depthFunc(gl.LEQUAL);						// Near things obscure far things
-
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-	const fieldOfView = 45 * Math.PI / 180;	 // in radians
-	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-	const zNear = 0.1;
-	const zFar = 100.0;
-	const projectionMatrix = mat4.create();
-
-	// note: glmatrix.js always has the first argument as the destination to receive the result.
-	mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-
-	// Tell WebGL to use our program when drawing
-	gl.useProgram(programInfo.program.shaderProgramID);
-
-	for(var i=0; i<scene.length; i++)
-	{
-		scene[i].render(programInfo, projectionMatrix);
-	}
 }
 
 /**
@@ -314,7 +474,7 @@ function loadModelToScene(gl, model)
 		(model.uvs instanceof Float32Array) && (model.indices instanceof Uint32Array))
 	{
 		console.info("Loading model with " + (model.vertices.length/3) + " vertices, " + (model.indices.length/3) + ' indices with the texture url: "' + model.texture + '".');
-		scene[scene.length] = loadModel(gl, model);
+		activeScene.models[activeScene.models.length] = loadModel(gl, model);
 	}
 	else
 	{
