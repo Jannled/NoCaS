@@ -12,46 +12,64 @@ document.exitPointerLock = document.exitPointerLock ||
 
 /** Vertex shader */
 const vsSource = `
-attribute vec4 aVertexPosition;
-attribute vec3 aVertexNormal;
-attribute vec2 aTextureCoord;
+	#version 300 es
+	layout(location = 0) in vec4 aVertexPosition;
+	layout(location = 1) in vec3 aVertexNormal;
+	layout(location = 2) in vec2 aTextureCoord;
 
-uniform vec3 ambientLight;
+	uniform mat4 uNormalMatrix;
+	uniform mat4 uModelMatrix;
+	uniform mat4 uProjectionMatrix;
 
-uniform mat4 uNormalMatrix;
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
+	out vec3 FragPos;
+	out vec3 Normal;
+	out vec2 textureCoord;
 
-varying highp vec2 vTextureCoord;
-varying highp vec3 vLighting;
+	void main(void)
+	{
+		FragPos = vec3(uModelMatrix * aVertexPosition);
+		Normal = normalize(mat3(uNormalMatrix) * aVertexNormal);
 
-void main(void) {
-	gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-	vTextureCoord = aTextureCoord;
+		gl_Position = uProjectionMatrix * uModelMatrix * aVertexPosition;
+		textureCoord = aTextureCoord;
 
-	// Apply lighting effect
-
-	highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-	highp vec3 directionalLightColor = vec3(1, 1, 1);
-	highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
-
-	highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
-
-	highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-	vLighting = ambientLight + (directionalLightColor * directional);
-}`;
+	}`;
 
 /** Fragment shader */
 const fsSource = `
-	varying highp vec2 vTextureCoord;
-	varying highp vec3 vLighting;
+	#version 300 es
+	precision mediump float;
+
+	in vec3 FragPos;
+	in vec3 Normal;
+	in vec2 textureCoord;
+
+	out vec4 FragColor;
 
 	uniform sampler2D uSampler;
 
-	void main(void) {
-		highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+	uniform vec3 ambientLight;
+	uniform vec3 lightPos;
+	uniform vec3 lightColor;
+	uniform vec3 viewPos;
 
-		gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+	void main(void)
+	{
+		vec4 texelColor = texture(uSampler, textureCoord);
+
+		// diffuse
+		vec3 lightDir = normalize(lightPos - FragPos);
+		float diff = max(dot(Normal, lightDir), 0.0f);
+		vec3 diffuse = diff * lightColor;
+
+		// specular
+		float specularStrength = 0.5f;
+		vec3 viewDir = normalize(viewPos - FragPos);
+		vec3 reflectDir = reflect(-lightDir, Normal);
+		float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 32.0f);
+		vec3 specular = specularStrength * spec * lightColor;
+
+		FragColor = vec4(texelColor.rgb * (ambientLight + diffuse + specular), 1.0f);
 	}`;
 
 var currentTime = 0.0;
@@ -62,7 +80,7 @@ var gl;
  */
 class Shader
 {
-	constructor(gl, shaderSource, shaderType)
+	constructor(shaderSource, shaderType)
 	{
 		if(shaderType !== gl.VERTEX_SHADER && shaderType !== gl.FRAGMENT_SHADER)
 			console.error("Invalid Shader type passed!");
@@ -85,7 +103,7 @@ class Shader
  */
 class ShaderProgram
 {
-	constructor(gl, vertexShader, fragmentShader)
+	constructor(vertexShader, fragmentShader)
 	{
 		if(vertexShader instanceof Shader && fragmentShader instanceof Shader)
 		{
@@ -103,6 +121,8 @@ class ShaderProgram
 				console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgramID));
 			}
 			this.shaderProgramID = shaderProgramID;
+
+			console.log("Sucessfully created ShaderProgram.");
 		}
 		else console.error("Could not create ShaderProgram, at least one of the Shaders is invalid!");
 	}
@@ -112,7 +132,7 @@ class ShaderProgram
  * @param gl The OpenGL Instance
  * @param name The name of the attribute
  */
-	getAttribLocation(gl, name)
+	getAttribLocation(name)
 	{
 		return gl.getAttribLocation(this.shaderProgramID, name);
 	}
@@ -122,9 +142,27 @@ class ShaderProgram
 	 * @param gl The OpenGL Instance
 	 * @param name The name of the uniform
 	 */
-	getUniformLocation(gl, name)
+	getUniformLocation(name)
 	{
 		return gl.getUniformLocation(this.shaderProgramID, name);
+	}
+
+	/**
+	 * @param identifier Either the name or an ID
+	 * @param vector3 The vector to set
+	 */
+	setVec3(identifier, vector3)
+	{
+		if(identifier instanceof String || typeof identifier === 'string')
+			gl.uniform3fv(getUniformLocation(identifier), vector3);
+		else if(identifier instanceof WebGLUniformLocation)
+			gl.uniform3fv(identifier, vector3);
+	}
+
+	setMat4(identifier, matrix4, transpose)
+	{
+		if(typeof transpose === 'boolean') console.error("setMat4: tanspose is not a boolean!")
+
 	}
 }
 
@@ -137,10 +175,11 @@ class Scene
 	{
 		this.models = [];
 		this.ambientLight = Float32Array.from([0.3, 0.3, 0.3]);
+		this.cameraPosition = new Float32Array(3);
 	}
 
 	/** Update the physics and gamelogic */
-	update(gl, deltaTime)
+	update(deltaTime)
 	{
 		for(var i=0; i<this.models.length; i++)
 		{
@@ -148,7 +187,7 @@ class Scene
 		}
 	}
 
-	render(gl, programInfo, deltaTime)
+	render(programInfo, deltaTime)
 	{
 		gl.clearColor(0.0, 0.0, 0.0, 1.0);	// Clear to black, fully opaque
 		gl.clearDepth(1.0);								 // Clear everything
@@ -168,6 +207,13 @@ class Scene
 
 		// Tell WebGL to use our program when drawing
 		gl.useProgram(programInfo.program.shaderProgramID);
+
+		//gl.uniform3fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+		// uniform vec3 ambientLight;
+		// uniform vec3 lightPos;
+		// uniform vec3 lightColor;
+		// uniform vec3 viewPos;
+
 
 		for(var i=0; i<this.models.length; i++)
 		{
@@ -256,56 +302,41 @@ class Model
 
 		this.render = function(programInfo, projectionMatrix)
 		{
-			const modelViewMatrix = mat4.create();
-			mat4.translate(modelViewMatrix, modelViewMatrix, this.position);		// amount to translate
-			mat4.rotate(modelViewMatrix, modelViewMatrix, this.rotation[0], [1, 0, 0]);	// axis to rotate around in radians (X)
-			mat4.rotate(modelViewMatrix, modelViewMatrix, this.rotation[1], [0, 1, 0]);	// axis to rotate around in radians (Y)
-			mat4.rotate(modelViewMatrix, modelViewMatrix, this.rotation[2], [0, 0, 1]);	// axis to rotate around in radians (Z)
+			const modelMatrix = mat4.create();
+			mat4.translate(modelMatrix, modelMatrix, this.position);		// amount to translate
+			mat4.rotate(modelMatrix, modelMatrix, this.rotation[0], [1, 0, 0]);	// axis to rotate around in radians (X)
+			mat4.rotate(modelMatrix, modelMatrix, this.rotation[1], [0, 1, 0]);	// axis to rotate around in radians (Y)
+			mat4.rotate(modelMatrix, modelMatrix, this.rotation[2], [0, 0, 1]);	// axis to rotate around in radians (Z)
 
 			const normalMatrix = mat4.create();
-			mat4.invert(normalMatrix, modelViewMatrix);
+			mat4.invert(normalMatrix, modelMatrix);
 			mat4.transpose(normalMatrix, normalMatrix);
 
 			// Tell WebGL how to pull out the positions from the position
 			// buffer into the vertexPosition attribute
-			{
-				gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.positionBuffer);
-				gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
-				gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-			}
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.positionBuffer);
+			gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 
 			// Tell WebGL how to pull out the texture coordinates from
 			// the texture coordinate buffer into the textureCoord attribute.
-			{
-				gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.textureCoordBuffer);
-				gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
-				gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
-			}
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.textureCoordBuffer);
+			gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
 
 			// Tell WebGL how to pull out the normals from
 			// the normal buffer into the vertexNormal attribute.
-			{
-				gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.normalBuffer);
-				gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, 3, gl.FLOAT, false, 0, 0);
-				gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-			}
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.ogldata.normalBuffer);
+			gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, 3, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
 
 			// Tell WebGL which indices to use to index the vertices
 			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ogldata.indexBuffer);
 
 			// Set the shader uniforms
-			gl.uniformMatrix4fv(
-					programInfo.uniformLocations.projectionMatrix,
-					false,
-					projectionMatrix);
-			gl.uniformMatrix4fv(
-					programInfo.uniformLocations.modelViewMatrix,
-					false,
-					modelViewMatrix);
-			gl.uniformMatrix4fv(
-					programInfo.uniformLocations.normalMatrix,
-					false,
-					normalMatrix);
+			gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+			gl.uniformMatrix4fv(programInfo.uniformLocations.modelMatrix, false, modelMatrix);
+			gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, normalMatrix);
 
 			// Specify the texture to map onto the faces.
 
@@ -337,7 +368,7 @@ function main()
 	//JavaScript is running
 	if(js != null) js.style.color = "#00FF00";
 
-	if(canvas != null) gl = canvas.getContext('webgl');
+	if(canvas != null) gl = canvas.getContext('webgl2');
 	else
 	{
 		console.error("Canvas tag not found, is the ID glcanvas?");
@@ -353,32 +384,38 @@ function main()
 	//WebGL is running
 	if(wgl != null) wgl.style.color = "#00FF00";
 
+	newSize();
+
+	//Print out OpenGL Version
+	console.log(gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
+	console.log(gl.getParameter(gl.VERSION));
+
 	// Initialize a shader program; this is where all the lighting
 	// for the vertices and so forth is established.
-	const shaderProgram = new ShaderProgram(gl, new Shader(gl, vsSource, gl.VERTEX_SHADER), new Shader(gl, fsSource, gl.FRAGMENT_SHADER));
+	const shaderProgram = new ShaderProgram(new Shader(vsSource, gl.VERTEX_SHADER), new Shader(fsSource, gl.FRAGMENT_SHADER));
 
 	// Collect all the info needed to use the shader program.
 	// Look up which attributes our shader program is using
 	// for aVertexPosition, aVertexNormal, aTextureCoord,
 	// and look up uniform locations.
+
 	const programInfo = {
 		program: shaderProgram,
 		attribLocations: {
-			vertexPosition: shaderProgram.getAttribLocation(gl, 'aVertexPosition'),
-			vertexNormal: shaderProgram.getAttribLocation(gl, 'aVertexNormal'),
-			textureCoord: shaderProgram.getAttribLocation(gl, 'aTextureCoord'),
+			vertexPosition: shaderProgram.getAttribLocation('aVertexPosition'),
+			vertexNormal: shaderProgram.getAttribLocation('aVertexNormal'),
+			textureCoord: shaderProgram.getAttribLocation('aTextureCoord'),
 		},
 		uniformLocations: {
-			projectionMatrix: shaderProgram.getUniformLocation(gl, 'uProjectionMatrix'),
-			modelViewMatrix: shaderProgram.getUniformLocation(gl, 'uModelViewMatrix'),
-			normalMatrix: shaderProgram.getUniformLocation(gl, 'uNormalMatrix'),
-			uSampler: shaderProgram.getUniformLocation(gl, 'uSampler'),
+			projectionMatrix: shaderProgram.getUniformLocation('uProjectionMatrix'),
+			modelMatrix: shaderProgram.getUniformLocation('uModelMatrix'),
+			normalMatrix: shaderProgram.getUniformLocation('uNormalMatrix'),
+			uSampler: shaderProgram.getUniformLocation('uSampler'),
+			ambientLight: shaderProgram.getUniformLocation('ambientLight')
 		},
 	};
 
 	var then = 0;
-
-	newSize();
 
 	/** Called by requestAnimationFrame */
 	function draw(timestamp) {
@@ -386,8 +423,8 @@ function main()
 		const deltaTime = timestamp - then;
 		then = timestamp;
 
-		activeScene.update(gl, deltaTime);
-		activeScene.render(gl, programInfo, deltaTime);
+		activeScene.update(deltaTime);
+		activeScene.render(programInfo, deltaTime);
 		requestAnimationFrame(draw);
 	}
 	requestAnimationFrame(draw);
