@@ -154,15 +154,20 @@ class ShaderProgram
 	setVec3(identifier, vector3)
 	{
 		if(identifier instanceof String || typeof identifier === 'string')
-			gl.uniform3fv(getUniformLocation(identifier), vector3);
+			gl.uniform3fv(this.getUniformLocation(identifier), vector3);
 		else if(identifier instanceof WebGLUniformLocation)
 			gl.uniform3fv(identifier, vector3);
+		else console.error("setVec3: Identifier is not of type String or WebGLUniformLocation!");
 	}
 
 	setMat4(identifier, matrix4, transpose)
 	{
 		if(typeof transpose === 'boolean') console.error("setMat4: tanspose is not a boolean!")
-
+		if(identifier instanceof String || typeof identifier === 'string')
+			gl.uniformMatrix4fv(this.getUniformLocation(identifier), transpose, matrix4);
+		else if(identifier instanceof WebGLUniformLocation)
+			gl.uniformMatrix4fv(identifier, transpose, matrix4);
+		else console.error("setMat4: Identifier is not of type String or WebGLUniformLocation!")
 	}
 }
 
@@ -171,10 +176,12 @@ class ShaderProgram
  */
 class Scene
 {
+	//Sky Color:  0.529, 0.807, 0.921
+	//Logo Color: 0.149, 0.847, 0.886
 	constructor()
 	{
 		this.models = [];
-		this.ambientLight = Float32Array.from([0.3, 0.3, 0.3]);
+		this.ambientLight = Float32Array.from([0, 0, 0]);
 		this.cameraPosition = new Float32Array(3);
 	}
 
@@ -189,7 +196,7 @@ class Scene
 
 	render(programInfo, deltaTime)
 	{
-		gl.clearColor(0.0, 0.0, 0.0, 1.0);	// Clear to black, fully opaque
+		gl.clearColor(this.ambientLight[0], this.ambientLight[1], this.ambientLight[2], 1.0);	// Clear to white, fully opaque
 		gl.clearDepth(1.0);								 // Clear everything
 		gl.enable(gl.DEPTH_TEST);					 // Enable depth testing
 		gl.depthFunc(gl.LEQUAL);						// Near things obscure far things
@@ -208,7 +215,10 @@ class Scene
 		// Tell WebGL to use our program when drawing
 		gl.useProgram(programInfo.program.shaderProgramID);
 
-		//gl.uniform3fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+		programInfo.program.setVec3("ambientLight", this.ambientLight);
+		programInfo.program.setVec3("lightPos", [0, 4, 0]);
+		programInfo.program.setVec3("lightColor", [1, 1, 1]);
+		programInfo.program.setVec3("viewPos", this.cameraPosition);
 		// uniform vec3 ambientLight;
 		// uniform vec3 lightPos;
 		// uniform vec3 lightColor;
@@ -310,7 +320,6 @@ class Model
 
 			const normalMatrix = mat4.create();
 			mat4.invert(normalMatrix, modelMatrix);
-			mat4.transpose(normalMatrix, normalMatrix);
 
 			// Tell WebGL how to pull out the positions from the position
 			// buffer into the vertexPosition attribute
@@ -334,9 +343,9 @@ class Model
 			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ogldata.indexBuffer);
 
 			// Set the shader uniforms
-			gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
-			gl.uniformMatrix4fv(programInfo.uniformLocations.modelMatrix, false, modelMatrix);
-			gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, normalMatrix);
+			programInfo.program.setMat4(programInfo.uniformLocations.projectionMatrix, projectionMatrix, false);
+			programInfo.program.setMat4(programInfo.uniformLocations.modelMatrix, modelMatrix, false);
+			programInfo.program.setMat4(programInfo.uniformLocations.normalMatrix, normalMatrix, true);
 
 			// Specify the texture to map onto the faces.
 
