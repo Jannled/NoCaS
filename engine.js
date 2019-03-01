@@ -1,7 +1,7 @@
 const displayRatio = 16 / 9;
 var canvas = document.getElementById('glcanvas');
 
-canvas.requestPointerLock = canvas.requestPointerLock ||
+/*canvas.requestPointerLock = canvas.requestPointerLock ||
 			     canvas.mozRequestPointerLock ||
 			     canvas.webkitRequestPointerLock;
 
@@ -9,7 +9,7 @@ canvas.requestPointerLock = canvas.requestPointerLock ||
 document.exitPointerLock = document.exitPointerLock ||
 			   document.mozExitPointerLock ||
 			   document.webkitExitPointerLock;
-
+*/
 /** Vertex shader */
 const vsSource = `
 	#version 300 es
@@ -72,8 +72,22 @@ const fsSource = `
 		FragColor = vec4(texelColor.rgb * (ambientLight + diffuse + specular), 1.0f);
 	}`;
 
-var currentTime = 0.0;
-var gl;
+
+
+class Engine
+{
+	constructor()
+	{
+		var currentTime = 0.0;
+		var gl;
+
+	}
+
+	init()
+	{
+		
+	}
+}
 
 /**
  *
@@ -162,7 +176,7 @@ class ShaderProgram
 
 	setMat4(identifier, matrix4, transpose)
 	{
-		if(typeof transpose === 'boolean') console.error("setMat4: tanspose is not a boolean!")
+		if(typeof transpose !== 'boolean') console.error("setMat4: tanspose is not a boolean!")
 		if(identifier instanceof String || typeof identifier === 'string')
 			gl.uniformMatrix4fv(this.getUniformLocation(identifier), transpose, matrix4);
 		else if(identifier instanceof WebGLUniformLocation)
@@ -216,14 +230,13 @@ class Scene
 		gl.useProgram(programInfo.program.shaderProgramID);
 
 		programInfo.program.setVec3("ambientLight", this.ambientLight);
-		programInfo.program.setVec3("lightPos", [0, 4, 0]);
+		programInfo.program.setVec3("lightPos", [5, 5, 10]);
 		programInfo.program.setVec3("lightColor", [1, 1, 1]);
 		programInfo.program.setVec3("viewPos", this.cameraPosition);
 		// uniform vec3 ambientLight;
 		// uniform vec3 lightPos;
 		// uniform vec3 lightColor;
 		// uniform vec3 viewPos;
-
 
 		for(var i=0; i<this.models.length; i++)
 		{

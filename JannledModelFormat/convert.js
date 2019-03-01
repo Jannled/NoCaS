@@ -1,4 +1,6 @@
 
+var smooth = false;
+
 /**
  *	Note: Depends on OBJLoader2.js and three.js (both from three.js)
 */
