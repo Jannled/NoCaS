@@ -1,5 +1,3 @@
-const displayRatio = 16 / 9;
-var canvas = document.getElementById('glcanvas');
 
 /*canvas.requestPointerLock = canvas.requestPointerLock ||
 			     canvas.mozRequestPointerLock ||
@@ -72,20 +70,128 @@ const fsSource = `
 		FragColor = vec4(texelColor.rgb * (ambientLight + diffuse + specular), 1.0f);
 	}`;
 
-
+var gl; /* Bad approach */
 
 class Engine
 {
-	constructor()
+	/**
+	 * @param{HTMLElement} canvasElement
+	 */
+	constructor(canvasElement, displayRatio)
 	{
 		var currentTime = 0.0;
-		var gl;
 
+		if(typeof displayRatio !== 'number') this.displayRatio = 16 / 9; else this.displayRatio = displayRatio;
+		this.canvas = canvasElement;
+		if(canvasElement instanceof HTMLElement) init();
 	}
 
-	init()
+	init(canvas)
 	{
-		
+		this.activeScene = new Scene();
+
+		var js = document.getElementById("js");
+		var wgl = document.getElementById("wgl");
+
+		//JavaScript is running
+		if(js != null) js.style.color = "#00FF00";
+
+		if(canvas != null) gl = canvas.getContext('webgl2');
+		else
+		{
+			console.error("Canvas tag not found, is the ID glcanvas?");
+			return;
+		}
+
+		// If we don't have a GL context, give up now
+		if (!gl) {
+			console.error('Unable to initialize WebGL. Your browser or machine may not support it.');
+			return;
+		}
+
+		//WebGL is running
+		if(wgl != null) wgl.style.color = "#00FF00";
+
+		this.newSize();
+
+		//Print out OpenGL Version
+		console.log(gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
+		console.log(gl.getParameter(gl.VERSION));
+
+		// Initialize a shader program; this is where all the lighting
+		// for the vertices and so forth is established.
+		const shaderProgram = new ShaderProgram(new Shader(vsSource, gl.VERTEX_SHADER), new Shader(fsSource, gl.FRAGMENT_SHADER));
+
+		// Collect all the info needed to use the shader program.
+		// Look up which attributes our shader program is using
+		// for aVertexPosition, aVertexNormal, aTextureCoord,
+		// and look up uniform locations.
+		const programInfo = {
+			program: shaderProgram,
+			attribLocations: {
+				vertexPosition: shaderProgram.getAttribLocation('aVertexPosition'),
+				vertexNormal: shaderProgram.getAttribLocation('aVertexNormal'),
+				textureCoord: shaderProgram.getAttribLocation('aTextureCoord'),
+			},
+			uniformLocations: {
+				projectionMatrix: shaderProgram.getUniformLocation('uProjectionMatrix'),
+				modelMatrix: shaderProgram.getUniformLocation('uModelMatrix'),
+				normalMatrix: shaderProgram.getUniformLocation('uNormalMatrix'),
+				uSampler: shaderProgram.getUniformLocation('uSampler'),
+				ambientLight: shaderProgram.getUniformLocation('ambientLight')
+			},
+		};
+
+		var then = 0;
+
+		//Update canvas size
+		window.scrollBy(0,1); //Safari fix
+		window.addEventListener('resize', this.newSize);
+
+		/** Called by requestAnimationFrame */
+		function draw(timestamp)
+		{
+			timestamp *= 0.001;	// convert to seconds
+			const deltaTime = timestamp - then;
+			then = timestamp;
+
+			activeScene.update(deltaTime);
+			activeScene.render(programInfo, deltaTime);
+			requestAnimationFrame(draw);
+		}
+		requestAnimationFrame(draw);
+	}
+
+	/** Handle window y */
+	newSize()
+	{
+		var twidth = canvas.parentElement.offsetWidth;
+		var theight = Math.round(twidth / displayRatio);
+
+		console.log("Canvas resized to " + twidth + "x" + theight);
+		canvas.width = twidth;
+		canvas.height = theight;
+		gl.viewport(0, 0, canvas.width, canvas.height);
+	}
+
+	/** Make game fullscreen */
+	goFullscreen()
+	{
+		var gameArea = document.getElementById("gamearea");
+		if (gameArea.requestFullscreen) {
+			gameArea.requestFullscreen();
+		} else if (gameArea.mozRequestFullScreen) { /* Firefox */
+			gameArea.mozRequestFullScreen();
+		} else if (gameArea.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+			gameArea.webkitRequestFullscreen();
+		} else if (gameArea.msRequestFullscreen) { /* IE/Edge */
+			gameArea.msRequestFullscreen();
+		}
+	}
+
+	lockMouse()
+	{
+		canvas.requestPointerLock();
 	}
 }
 
@@ -377,79 +483,14 @@ class Model
 	}
 }
 
-var activeScene = new Scene();
+
 
 main();
 
 /** Main Method */
 function main()
 {
-	var js = document.getElementById("js");
-	var wgl = document.getElementById("wgl");
 
-	//JavaScript is running
-	if(js != null) js.style.color = "#00FF00";
-
-	if(canvas != null) gl = canvas.getContext('webgl2');
-	else
-	{
-		console.error("Canvas tag not found, is the ID glcanvas?");
-		return;
-	}
-
-	// If we don't have a GL context, give up now
-	if (!gl) {
-		console.error('Unable to initialize WebGL. Your browser or machine may not support it.');
-		return;
-	}
-
-	//WebGL is running
-	if(wgl != null) wgl.style.color = "#00FF00";
-
-	newSize();
-
-	//Print out OpenGL Version
-	console.log(gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
-	console.log(gl.getParameter(gl.VERSION));
-
-	// Initialize a shader program; this is where all the lighting
-	// for the vertices and so forth is established.
-	const shaderProgram = new ShaderProgram(new Shader(vsSource, gl.VERTEX_SHADER), new Shader(fsSource, gl.FRAGMENT_SHADER));
-
-	// Collect all the info needed to use the shader program.
-	// Look up which attributes our shader program is using
-	// for aVertexPosition, aVertexNormal, aTextureCoord,
-	// and look up uniform locations.
-
-	const programInfo = {
-		program: shaderProgram,
-		attribLocations: {
-			vertexPosition: shaderProgram.getAttribLocation('aVertexPosition'),
-			vertexNormal: shaderProgram.getAttribLocation('aVertexNormal'),
-			textureCoord: shaderProgram.getAttribLocation('aTextureCoord'),
-		},
-		uniformLocations: {
-			projectionMatrix: shaderProgram.getUniformLocation('uProjectionMatrix'),
-			modelMatrix: shaderProgram.getUniformLocation('uModelMatrix'),
-			normalMatrix: shaderProgram.getUniformLocation('uNormalMatrix'),
-			uSampler: shaderProgram.getUniformLocation('uSampler'),
-			ambientLight: shaderProgram.getUniformLocation('ambientLight')
-		},
-	};
-
-	var then = 0;
-
-	/** Called by requestAnimationFrame */
-	function draw(timestamp) {
-		timestamp *= 0.001;	// convert to seconds
-		const deltaTime = timestamp - then;
-		then = timestamp;
-
-		activeScene.update(deltaTime);
-		activeScene.render(programInfo, deltaTime);
-		requestAnimationFrame(draw);
-	}
-	requestAnimationFrame(draw);
 }
 
 /**
@@ -583,39 +624,6 @@ function isPowerOf2(value) {
 	return (value & (value - 1)) == 0;
 }
 
-window.scrollBy(0,1); //Safari fix
-window.addEventListener('resize', newSize);
-/** Handle window y */
-function newSize()
-{
-	var twidth = canvas.parentElement.offsetWidth;
-	var theight = Math.round(twidth / displayRatio);
-
-	console.log("Canvas resized to " + twidth + "x" + theight);
-	canvas.width = twidth;
-	canvas.height = theight;
-	gl.viewport(0, 0, canvas.width, canvas.height);
-}
-
-/** Make game fullscreen */
-function goFullscreen()
-{
-	var gameArea = document.getElementById("gamearea");
-	if (gameArea.requestFullscreen) {
-		gameArea.requestFullscreen();
-	} else if (gameArea.mozRequestFullScreen) { /* Firefox */
-		gameArea.mozRequestFullScreen();
-	} else if (gameArea.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
-		gameArea.webkitRequestFullscreen();
-	} else if (gameArea.msRequestFullscreen) { /* IE/Edge */
-		gameArea.msRequestFullscreen();
-	}
-}
-
-function lockMouse()
-{
-	canvas.requestPointerLock();
-}
 
 /*
 element.requestPointerLock = element.requestPointerLock ||
