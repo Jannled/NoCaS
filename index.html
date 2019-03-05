@@ -11,18 +11,17 @@
 
 	<div style="background-color: #000000; padding: 10px;">
 		<div id="gamearea">
-			<canvas id="glcanvas" width="400" height="400">
-				<h2>Dependencies:</h2>
-				<ol style="color: red">
-					<li id="js">JavaScript needs to be enabled and supported by your browser!</li>
-					<li id="wgl">WebGL needs HTML5 support by your browser and JavaScript!</li>
-				</ol>
-				<p>If you see this message longer than the website takes to load something went wrong. This text might appear if a
-					script on this website threw an error but it is probably due to incompatibility with your browser. Please try
-					with a recent desktop version of Chrome, Firefox or Opera if you are using another browser.</p>
-			</canvas>
+			<h2>Dependencies:</h2>
+			<ol style="color: red">
+				<li id="js">JavaScript needs to be enabled and supported by your browser!</li>
+				<li id="wgl">WebGL needs HTML5 support by your browser and JavaScript!</li>
+			</ol>
+			<p>If you see this message longer than the website takes to load something went wrong. This text might appear if a
+				script on this website threw an error but it is probably due to incompatibility with your browser. Please try
+				with a recent desktop version of Chrome, Firefox or Opera if you are using another browser.
+			</p>
 		</div>
-		<p id=FPS>Engine not running</p>
+		<div id=FPS style="display: block; margin-left: auto; margin-right: 0;">Engine not running</div>
 		<button id="button" onClick="goFullscreen(document.getElementById('gamearea'));" style="display: block; margin-left: auto; margin-right: 0;">Fullscreen</button>
 	</div>
 

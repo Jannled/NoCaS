@@ -78,17 +78,20 @@ class Engine
 	/**
 	 * @param{HTMLElement} canvasElement The HTML Element of the canvas
 	 */
-	constructor(canvasElement, displayRatio)
+	constructor(canvasContainerElement, displayRatio)
 	{
 		var currentTime = 0.0;
 		engine = this;
 
+		this.canvas = document.createElement('canvas');
+		this.canvasContainer = canvasContainerElement;
+
 		if(typeof displayRatio !== 'number') this.displayRatio = 16 / 9; else this.displayRatio = displayRatio;
-		this.canvas = canvasElement;
-		if(canvasElement instanceof HTMLElement) this.init(this.canvas); else console.error("Failed to initialize engine. Please pass an HTML Element as first parameter!");
+
+		this.init(this.canvas, this.canvasContainer);
 	}
 
-	init(canvas)
+	init(canvas, canvasContainer)
 	{
 		this.activeScene = new Scene();
 
@@ -114,7 +117,20 @@ class Engine
 		//WebGL is running
 		if(wgl != null) wgl.style.color = "#00FF00";
 
+		//Add canvas to document
+		if(canvasContainer instanceof HTMLElement)
+		{
+			while (canvasContainer.lastChild)
+    			canvasContainer.removeChild(canvasContainer.lastChild);
+
+			this.canvasContainer.appendChild(this.canvas);
+		}  else
+		{
+			console.error("Failed to initialize engine. Please pass an HTML Element as first parameter!");
+		}
+
 		engine.newSize();
+		if(location.hash === "#fullscreen") goFullscreen(canvas);
 
 		//Print out OpenGL Version
 		console.log(gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
@@ -277,11 +293,11 @@ class Engine
 	{
 		canvas.requestPointerLock();
 	}
-
 }
 
 /**
- *
+ * @param shaderSource Source Code
+ * @param shaderType VERTEX_SHADER oder FRAGMENT_SHADER
  */
 class Shader
 {
@@ -471,6 +487,7 @@ class Model
 	constructor(modelName, vertices, normals, uvs, indices, texture, position, rotation, scale, update)
 	{
 		this.modelName = modelName;
+		this.velocity = new Float32Array(3);
 
 		if(vertices instanceof Float32Array)
 			this.vertices = vertices;
@@ -616,7 +633,6 @@ function requestFile(fileUrl, /*Function*/runOnLoad)
 {
 	if(!(runOnLoad instanceof Function))
 	{
-
 		console.error(" requestFile(fileUrl, runOnLoad) needs a function as second argument!");
 		return;
 	}
