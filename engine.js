@@ -178,7 +178,7 @@ class Engine
 
 			timeSinceUpdate = timeSinceUpdate + deltaTime;
 
-			if(timeSinceUpdate > logicTicks)
+			while(timeSinceUpdate > logicTicks)
 			{
 				timeSinceUpdate = timeSinceUpdate - logicTicks;
 				engine.activeScene.update(deltaTime);
