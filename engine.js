@@ -169,7 +169,7 @@ class Engine
 		window.scrollBy(0,1); //Safari fix
 		window.addEventListener('resize', engine.newSize);
 
-		/** Called by requestAnimationFrame */
+		/** Called by requestAnimationFrame */ //setTimeout()
 		function renderLoop(timestamp)
 		{
 			timestamp *= 0.001;	// convert to seconds
