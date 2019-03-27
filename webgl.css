@@ -1,27 +1,32 @@
+:root {
+	--primaryColor: #26d8e2;
+}
+
 body {
 	background-color: #090909;
-	color: #26d8e2;
+	color: var(--primaryColor);
 }
 
 h1 {
 	text-align: center;
 	font-weight: 900;
-	color: #26d8e2;
+	color: var(--primaryColor);
 }
 
 button {
 	background-color: #004844;
 	color: black;
 	border: none;
-	padding: 10px;
+	padding: 1em;
+	border-radius: 5px;
 }
 
 canvas {
 	display: block;
 }
 
-textarea {
-	padding: 10px;
+textarea, input {
+	padding: 0.5em;
   line-height: 1.5;
   border-radius: 5px;
   border: 1px solid #ccc;

@@ -15,8 +15,9 @@
 <body>
 	<div id='dropzone'>
 		<!-- <input type="text" name="name" value="test.txt"> -->
-		<textarea id="objFile" rows="30" cols="60" playceholder="Copy your OBJ here"></textarea>
+		<textarea id="objFile" rows="30" cols="60" playceholder="Copy your OBJ here"></textarea> <br>
 		<button onclick="convert()">Download</button>
+		<label><input id="textures" type="text" value=""> Texture URL </label>
 	</div>
 
 	<script type="text/javascript">
@@ -70,7 +71,7 @@
 			var normals = model.normals;
 			var uvs = model.uvs;
 
-			var jmf = convertToJMF(model.modelName, model.vertices, model.normals, model.uvs, model.indices);
+			var jmf = convertToJMF(model.modelName, model.vertices, model.normals, model.uvs, model.indices, document.getElementById('textures').value);
 			console.log("Model name: " + model.modelName);
 
 			//Start download

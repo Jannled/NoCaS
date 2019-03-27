@@ -73,6 +73,9 @@ const fsSource = `
 var gl;
 var engine; /* Bad approach */
 
+var textureCache = new Map();
+var modelCache = new Map();
+
 class Engine
 {
 	/**
@@ -264,17 +267,25 @@ class Engine
 	 * Uses XHR to download a model file which will then be parsed and loaded into the scene
 	 * @param fileUrl Path of the jmf file to be downloaded
 	*/
-	loadModelFromUrl(fileUrl, imageUrl, position, rotation, scale)
+	loadModelFromUrl(fileUrl, position, rotation, scale)
 	{
-		var activeScene = engine.activeScene;
-
-		requestFile(fileUrl, function(data, status)
+		var model = modelCache.get(fileUrl);
+		if(model === 'undefined')
 		{
-			console.log('Request: "' + fileUrl + '" [' + status + "].")
-			var mesh = convertFromJMF(data);
-			var model = new Model(mesh.name, mesh.vertices, mesh.normals, mesh.uvs, mesh.indices, imageUrl, position, rotation, scale);
-			engine.activeScene.loadModelToScene(model);
-		});
+			requestFile(fileUrl, function(data, status)
+			{
+				console.log('Request: "' + fileUrl + '" [' + status + "].")
+				var mesh = convertFromJMF(data);
+				model = new Model(mesh.name, mesh.vertices, mesh.normals, mesh.uvs, mesh.indices, mesh.textures, position, rotation, scale);
+				modelCache.set(fileUrl, model);
+			});
+		}
+		engine.activeScene.loadModelToScene(model);
+	}
+
+	loadModelFromScene(fileUrl)
+	{
+
 	}
 
 	/** Handle window y */

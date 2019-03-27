@@ -41,9 +41,17 @@ function convertFromObj(objContent)
 	return new Model(modelName, vertices, normals, uvs, indices);
 }
 
-function convertToJMF(modelName, vertices, normals, uvs, indices)
+/**
+ * @param{string} modelName
+ * @param{Float32Array} vertices
+ * @param{Float32Array} normals
+ * @param{Float32Array} uvs
+ * @param{Uint32Array} indices
+ * @param{string[]} textures
+*/
+function convertToJMF(modelName, vertices, normals, uvs, indices, textures)
 {
-	var output = "#JannledModelConverter V1.0.0\n";
+	var output = "#JannledModelConverter V1.1.0\n";
 	output += "o{" + modelName + "}\n" + "v{";
 	for(var i=0; i<vertices.length-1; i++)
 	{
@@ -72,6 +80,14 @@ function convertToJMF(modelName, vertices, normals, uvs, indices)
 	}
 	output += indices[indices.length-1] + "}\n";
 
+	output += "g{";
+	var stextures = textures.split(',');
+	for(var i=0; i<stextures.length-1; i++)
+	{
+		output += stextures[i] + ",";
+	}
+	output += stextures[stextures.length-1] + "}\n";
+
 	return output;
 }
 
@@ -82,13 +98,15 @@ function convertFromJMF(content)
 	const vpos = 2;
 	const npos = 3;
 	const tpos = 4;
-	const fpos = 5
+	const fpos = 5;
+	const gpos = 6;
 	var h = "--NOT FOUND--";
 	var o = "--NOT FOUND--";
 	var v = "--NOT FOUND--";
 	var n = "--NOT FOUND--";
 	var t = "--NOT FOUND--";
 	var f = "--NOT FOUND--";
+	var g = "--NOT FOUND--";
 
 	var lines = content.split('\n');
 	try{
@@ -119,7 +137,7 @@ function convertFromJMF(content)
 		if(lines[npos].charAt(0) !== 'n') throw "Missing n-Key";
 		var begin = lines[npos].indexOf('{');
 		var end = lines[npos].lastIndexOf('}');
-		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in normal section!";
 		n = Float32Array.from(lines[npos].substr(begin+1, (end-2)).split(","));
 
 
@@ -128,7 +146,7 @@ function convertFromJMF(content)
 		if(lines[tpos].charAt(0) !== 't') throw "Missing t-Key";
 		var begin = lines[tpos].indexOf('{');
 		var end = lines[tpos].lastIndexOf('}');
-		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in uv section!";
 		t = Float32Array.from(lines[tpos].substr(begin+1, (end-2)).split(","));
 
 
@@ -137,18 +155,35 @@ function convertFromJMF(content)
 		if(lines[fpos].charAt(0) !== 'f') throw "Missing f-Key";
 		var begin = lines[fpos].indexOf('{');
 		var end = lines[fpos].lastIndexOf('}');
-		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in face section!";
 		f = Uint32Array.from(lines[fpos].substr(begin+1, (end-2)).split(","));
+
+		//Parse the texture url section
+		lines[gpos].trim();
+		if(lines[gpos].charAt(0) !== 'g') throw "Missing g-Key";
+		var begin = lines[gpos].indexOf('{');
+		var end = lines[gpos].lastIndexOf('}');
+		if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in texture url section!";
+		g = lines[gpos].substr(begin+1, (end-2)).split(",");
 
 		return {
 			name: o,
 			vertices: v,
 			normals: n,
 			uvs: t,
-			indices: f
+			indices: f,
+			textures: g
 		};
 	} catch(err) {
 		console.error("An error occured while parsing the model: " + err);
 		if(console.trace) console.trace();
 	}
+}
+
+/**
+ * Load a scene in the Jannled Scene Format into the engine
+*/
+function convertFromJSF(jsfContent)
+{
+	
 }
