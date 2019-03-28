@@ -73,8 +73,8 @@ const fsSource = `
 var gl;
 var engine; /* Bad approach */
 
-var textureCache = new Map();
-var modelCache = new Map();
+/** Stores Assets with their URL as key to prevent downloading them more than once */
+var assetCache = new Map();
 
 class Engine
 {
@@ -224,23 +224,13 @@ class Engine
 	 	const textureBuffer = gl.createTexture();
 	 	gl.bindTexture(gl.TEXTURE_2D, textureBuffer);
 
-	 	const level = 0;
-	 	const internalFormat = gl.RGBA;
-	 	const width = 1;
-	 	const height = 1;
-	 	const border = 0;
-	 	const srcFormat = gl.RGBA;
-	 	const srcType = gl.UNSIGNED_BYTE;
 	 	const pixel = new Uint8Array([255, 0, 255, 255]); //Color of unloaded texture
-	 	gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-	 								width, height, border, srcFormat, srcType,
-	 								pixel);
+	 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
 
 	 	const image = new Image();
 	 	image.onload = function() {
 	 		gl.bindTexture(gl.TEXTURE_2D, textureBuffer);
-	 		gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-	 									srcFormat, srcType, image);
+	 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
 	 		if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
 	 			 gl.generateMipmap(gl.TEXTURE_2D);
@@ -264,23 +254,22 @@ class Engine
 
 
 	/**
-	 * Uses XHR to download a model file which will then be parsed and loaded into the scene
+	 * Uses XHR to download a model file which will be parsed and loaded into
+	 * the scene after the file is recieved. A cache is used to make sure every
+	 * file only need to be loaded once. The method does not wait for the download
+	 * to complete.
 	 * @param fileUrl Path of the jmf file to be downloaded
 	*/
 	loadModelFromUrl(fileUrl, position, rotation, scale)
 	{
-		var model = modelCache.get(fileUrl);
-		if(model === 'undefined')
+		requestFile(fileUrl, function(data, status)
 		{
-			requestFile(fileUrl, function(data, status)
-			{
-				console.log('Request: "' + fileUrl + '" [' + status + "].")
-				var mesh = convertFromJMF(data);
-				model = new Model(mesh.name, mesh.vertices, mesh.normals, mesh.uvs, mesh.indices, mesh.textures, position, rotation, scale);
-				modelCache.set(fileUrl, model);
-			});
-		}
-		engine.activeScene.loadModelToScene(model);
+			console.log('Request: "' + fileUrl + '" [' + status + "].")
+			var mesh = convertFromJMF(data);
+			var model = new Model(mesh.name, mesh.vertices, mesh.normals, mesh.uvs, mesh.indices, mesh.textures, position, rotation, scale);
+			assetCache.set(fileUrl, model);
+			engine.activeScene.loadModelToScene(model);
+		});
 	}
 
 	loadModelFromScene(fileUrl)
@@ -637,8 +626,10 @@ function isPowerOf2(value) {
 }
 
 /**
- *  @param fileUrl The path of the file to download.
- *  @param runOnLoad{Function} The method to execute after the request has finished. The status contains information if the request was successfull [200].
+ * If the requested URL is found in the asset cache, the asset is returned,
+ * otherwise the file is downloaded.
+ * @param fileUrl The path of the file to download.
+ * @param {Function} runOnLoad The method to execute after the request has finished (readyState==4). The status contains information if the request was successfull [200] or [904] if found in cache.
  */
 function requestFile(fileUrl, /*Function*/runOnLoad)
 {
@@ -648,13 +639,32 @@ function requestFile(fileUrl, /*Function*/runOnLoad)
 		return;
 	}
 
-	var xhr = new XMLHttpRequest();
-	xhr.onreadystatechange = function()
+	var ac = assetCache.get(fileUrl);
+	if(!assetCache.has(fileUrl))
 	{
-		if(this.readyState == 4) runOnLoad(this.responseText, this.status);
+		var xhr = new XMLHttpRequest();
+		xhr.waitingMethods = [runOnLoad];
+		assetCache.set(fileUrl, xhr);
+
+		xhr.onreadystatechange = function()
+		{
+			if(this.readyState !== 4) return;
+			console.log('Downloaded "' + fileUrl + '" [' + this.status + ']')
+			for(var f in waitingMethods)
+				f(this.responseText, this.status);
+		}
+		xhr.open("GET", fileUrl);
+		xhr.send();
 	}
-	xhr.open("GET", fileUrl);
-	xhr.send();
+	else if(ac instanceof XMLHttpRequest)
+	{
+		ac.waitingMethods.push(runOnLoad);
+		console.log('Download of "' + fileUrl + '" is already requested.');
+	}
+
+else {
+	runOnLoad(assetCache.get(fileUrl), 904);
+	console.log('Delivered from cache: "'  + fileUrl + '" [904]');
 }
 
 
