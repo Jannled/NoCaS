@@ -264,11 +264,23 @@ class Engine
 	{
 		requestFile(fileUrl, function(data, status)
 		{
-			console.log('Request: "' + fileUrl + '" [' + status + "].")
-			var mesh = convertFromJMF(data);
-			var model = new Model(mesh.name, mesh.vertices, mesh.normals, mesh.uvs, mesh.indices, mesh.textures, position, rotation, scale);
-			assetCache.set(fileUrl, model);
-			engine.activeScene.loadModelToScene(model);
+			if(status==200)
+			{
+				var mesh = convertFromJMF(data);
+				var model = new Model(mesh.name, mesh.vertices, mesh.normals, mesh.uvs, mesh.indices, mesh.textures, position, rotation, scale);
+				assetCache.set(fileUrl, model);
+				engine.activeScene.loadModelToScene(model);
+			}
+			else if(status==903)
+			{
+				if(!(assetCache.get(fileUrl) instanceof Model)) {console.log('Error while duplication model with url "' + fileUrl + '"!'); return;}
+				var cmodel = Object.assign({}, assetCache.get(fileUrl));
+				Object.setPrototypeOf(cmodel, Model.prototype);
+				cmodel.position = (position instanceof Float32Array && position.size == 3) ? position : Float32Array.from([0, 0, 0]);
+				cmodel.rotation = (rotation instanceof Float32Array && rotation.size == 3) ? rotation : Float32Array.from([0, 0, 0]);
+				cmodel.scale = (scale instanceof Float32Array && scale.size == 3) ? scale : Float32Array.from[1, 1, 1];
+				engine.activeScene.loadModelToScene(cmodel);
+			}
 		});
 	}
 
@@ -484,7 +496,7 @@ class Scene
 */
 class Model
 {
-	constructor(modelName, vertices, normals, uvs, indices, texture, position, rotation, scale, update)
+	constructor(modelName, vertices, normals, uvs, indices, texture, position, rotation, scale, update, ogldata, render)
 	{
 		this.modelName = modelName;
 		this.velocity = new Float32Array(3);
@@ -601,6 +613,15 @@ class Model
 			}
 		};
 	}
+
+	/*
+	 * Used to clone a model so the data in graphics memory can be reused
+	 * @param{Model} model The model to clone
+	 * @param{Float32Array} position 3 floats to describe the position of the model
+	 * @param{Float32Array} rotation 3 floats to describe the rotation of the model
+	 * @param{Float32Array} scale 3 floats do describe the scale of the model
+	 * @param{Function} update Called by gamelogic
+	*/
 }
 
 /** Make specified HTMLElement fullscreen
@@ -631,7 +652,7 @@ function isPowerOf2(value) {
  * @param fileUrl The path of the file to download.
  * @param {Function} runOnLoad The method to execute after the request has finished (readyState==4). The status contains information if the request was successfull [200] or [904] if found in cache.
  */
-function requestFile(fileUrl, /*Function*/runOnLoad)
+function requestFile(fileUrl, runOnLoad)
 {
 	if(!(runOnLoad instanceof Function))
 	{
@@ -650,8 +671,10 @@ function requestFile(fileUrl, /*Function*/runOnLoad)
 		{
 			if(this.readyState !== 4) return;
 			console.log('Downloaded "' + fileUrl + '" [' + this.status + ']')
-			for(var f in waitingMethods)
-				f(this.responseText, this.status);
+
+			this.waitingMethods[0](this.responseText, this.status);
+			for(var f=1; f<this.waitingMethods.length; f++)
+				this.waitingMethods[f](this.responseText, 903);
 		}
 		xhr.open("GET", fileUrl);
 		xhr.send();
@@ -662,9 +685,10 @@ function requestFile(fileUrl, /*Function*/runOnLoad)
 		console.log('Download of "' + fileUrl + '" is already requested.');
 	}
 
-else {
-	runOnLoad(assetCache.get(fileUrl), 904);
-	console.log('Delivered from cache: "'  + fileUrl + '" [904]');
+	else {
+		runOnLoad(assetCache.get(fileUrl), 904);
+		console.log('Delivered from cache: "'  + fileUrl + '" [904]');
+	}
 }
 
 
