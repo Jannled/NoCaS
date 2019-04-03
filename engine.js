@@ -273,20 +273,57 @@ class Engine
 			}
 			else if(status==903)
 			{
-				if(!(assetCache.get(fileUrl) instanceof Model)) {console.log('Error while duplication model with url "' + fileUrl + '"!'); return;}
+				if(!(assetCache.get(fileUrl) instanceof Model)) {console.error('Cache does not contain a model for "' + fileUrl + '"!'); return;}
 				var cmodel = Object.assign({}, assetCache.get(fileUrl));
 				Object.setPrototypeOf(cmodel, Model.prototype);
 				cmodel.position = (position instanceof Float32Array && position.size == 3) ? position : Float32Array.from([0, 0, 0]);
 				cmodel.rotation = (rotation instanceof Float32Array && rotation.size == 3) ? rotation : Float32Array.from([0, 0, 0]);
-				cmodel.scale = (scale instanceof Float32Array && scale.size == 3) ? scale : Float32Array.from[1, 1, 1];
+				cmodel.scale = (scale instanceof Float32Array && scale.size == 3) ? scale : Float32Array.from([1, 1, 1]);
 				engine.activeScene.loadModelToScene(cmodel);
+			}
+			else {
+				console.error('Download of model "' + fileUrl + '" failed with [' + status + ']');
 			}
 		});
 	}
 
 	loadModelFromScene(fileUrl)
 	{
+		requestFile(fileUrl, function(data, status) {
+			if(status==200)
+			{
+				var lines = data.split('\n');
+				try{ //TODO
+					//Parse the JSF-header
+					lines[0].trim();
+					if(lines[0].charAt(0) !== '#') throw "Missing #-Key";
+					h=lines[0];
 
+					//Parse the object section
+					lines[opos].trim();
+					if(lines[opos].charAt(0) !== 'o') throw "Missing o-Key";
+					var begin = lines[opos].indexOf('{');
+					var end = lines[opos].lastIndexOf('}');
+					if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in object section!";
+					o=lines[opos].substr(begin+1, (end-2));
+
+					//Parse the vertice section
+					lines[vpos].trim();
+					if(lines[vpos].charAt(0) !== 'v') throw "Missing v-Key";
+					var begin = lines[vpos].indexOf('{');
+					var end = lines[vpos].lastIndexOf('}');
+					if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
+					v = Float32Array.from(lines[vpos].substr(begin+1, (end-2)).split(","));
+				} catch(err) {
+					console.error("An error occured while parsing the scene: " + err);
+					if(console.trace) console.trace();
+				}
+			}
+			else if(status==903)
+			{
+				if(!(assetCache.get(fileUrl) instanceof Scene)) {console.error('Cache does not contain a scene for "' + fileUrl + '"!'); return;}
+			}
+		});
 	}
 
 	/** Handle window y */

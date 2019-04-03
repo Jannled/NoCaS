@@ -185,5 +185,5 @@ function convertFromJMF(content)
 */
 function convertFromJSF(jsfContent)
 {
-	
+
 }
