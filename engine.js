@@ -16,8 +16,7 @@ const vsSource = `
 	layout(location = 2) in vec2 aTextureCoord;
 
 	uniform mat4 uNormalMatrix;
-	uniform mat4 uModelMatrix;
-	uniform mat4 uProjectionMatrix;
+	uniform mat4 uMVP;
 
 	out vec3 FragPos;
 	out vec3 Normal;
@@ -25,12 +24,11 @@ const vsSource = `
 
 	void main(void)
 	{
-		FragPos = vec3(uModelMatrix * aVertexPosition);
+		FragPos = vec3(uMVP * aVertexPosition);
 		Normal = normalize(mat3(uNormalMatrix) * aVertexNormal);
 
-		gl_Position = uProjectionMatrix * uModelMatrix * aVertexPosition;
+		gl_Position = uMVP * aVertexPosition;
 		textureCoord = aTextureCoord;
-
 	}`;
 
 /** Fragment shader */
@@ -155,8 +153,7 @@ class Engine
 				textureCoord: shaderProgram.getAttribLocation('aTextureCoord'),
 			},
 			uniformLocations: {
-				projectionMatrix: shaderProgram.getUniformLocation('uProjectionMatrix'),
-				modelMatrix: shaderProgram.getUniformLocation('uModelMatrix'),
+				modelViewProjection: shaderProgram.getUniformLocation('uMVP'),
 				normalMatrix: shaderProgram.getUniformLocation('uNormalMatrix'),
 				uSampler: shaderProgram.getUniformLocation('uSampler'),
 				ambientLight: shaderProgram.getUniformLocation('ambientLight')
@@ -287,45 +284,6 @@ class Engine
 		});
 	}
 
-	loadModelFromScene(fileUrl)
-	{
-		requestFile(fileUrl, function(data, status) {
-			if(status==200)
-			{
-				var lines = data.split('\n');
-				try{ //TODO
-					//Parse the JSF-header
-					lines[0].trim();
-					if(lines[0].charAt(0) !== '#') throw "Missing #-Key";
-					h=lines[0];
-
-					//Parse the object section
-					lines[opos].trim();
-					if(lines[opos].charAt(0) !== 'o') throw "Missing o-Key";
-					var begin = lines[opos].indexOf('{');
-					var end = lines[opos].lastIndexOf('}');
-					if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in object section!";
-					o=lines[opos].substr(begin+1, (end-2));
-
-					//Parse the vertice section
-					lines[vpos].trim();
-					if(lines[vpos].charAt(0) !== 'v') throw "Missing v-Key";
-					var begin = lines[vpos].indexOf('{');
-					var end = lines[vpos].lastIndexOf('}');
-					if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in vertice section!";
-					v = Float32Array.from(lines[vpos].substr(begin+1, (end-2)).split(","));
-				} catch(err) {
-					console.error("An error occured while parsing the scene: " + err);
-					if(console.trace) console.trace();
-				}
-			}
-			else if(status==903)
-			{
-				if(!(assetCache.get(fileUrl) instanceof Scene)) {console.error('Cache does not contain a scene for "' + fileUrl + '"!'); return;}
-			}
-		});
-	}
-
 	/** Handle window y */
 	newSize()
 	{
@@ -452,7 +410,8 @@ class Scene
 	{
 		this.models = [];
 		this.ambientLight = Float32Array.from([0.0, 0.0, 0.0]);
-		this.cameraPosition = new Float32Array(3);
+		this.cameraPosition = Float32Array.from([0.0, 0.0, 0.0]);
+		this.cameraRotation = Float32Array.from([0.0, 0.0, 0.0]);
 	}
 
 	/** Update the physics and gamelogic */
@@ -466,13 +425,15 @@ class Scene
 
 	render(programInfo, deltaTime)
 	{
-		gl.clearColor(this.ambientLight[0], this.ambientLight[1], this.ambientLight[2], 1.0);	// Clear to white, fully opaque
+		gl.clearColor(this.ambientLight[0], this.ambientLight[1], this.ambientLight[2], 1.0);	//Backgroundcolor is taken from ambient light
 		gl.clearDepth(1.0);								 // Clear everything
 		gl.enable(gl.DEPTH_TEST);					 // Enable depth testing
 		gl.depthFunc(gl.LEQUAL);						// Near things obscure far things
 
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+
+		//Create Projection Matrix
 		const fieldOfView = 45 * Math.PI / 180;	 // in radians
 		const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
 		const zNear = 0.1;
@@ -481,6 +442,16 @@ class Scene
 
 		// note: glmatrix.js always has the first argument as the destination to receive the result.
 		mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+
+		//Create View Matrix
+		const viewMatrix = mat4.create();
+		mat4.translate(viewMatrix, viewMatrix, this.cameraPosition);		// amount to translate
+		mat4.rotate(viewMatrix, viewMatrix, this.cameraRotation[0], [1, 0, 0]);	// axis to rotate around in radians (X)
+		mat4.rotate(viewMatrix, viewMatrix, this.cameraRotation[1], [0, 1, 0]);	// axis to rotate around in radians (Y)
+		mat4.rotate(viewMatrix, viewMatrix, this.cameraRotation[2], [0, 0, 1]);	// axis to rotate around in radians (Z)
+
+		//Calculate the View-Projection matrix
+		var viewProjectionMatrix = mat4.multiply(mat4.create(), projectionMatrix, mat4.invert(viewMatrix, viewMatrix));
 
 		// Tell WebGL to use our program when drawing
 		gl.useProgram(programInfo.program.shaderProgramID);
@@ -491,10 +462,58 @@ class Scene
 		programInfo.program.setVec3("viewPos", this.cameraPosition);
 		for(var i=0; i<this.models.length; i++)
 		{
-			this.models[i].render(programInfo, projectionMatrix);
+			this.models[i].render(programInfo, viewProjectionMatrix);
 		}
 	}
 
+
+		/**
+		 * @param{String} fileUrl Path to the scene
+		 * @param{Scene} targetScene Scene to populate with the loaded models
+		*/
+		loadSceneFromUrl(fileUrl)
+		{
+			requestFile(fileUrl, function(data, status) {
+				if(status==200)
+				{
+					var lines = data.split('\n');
+					try{ //TODO
+						//Parse the JSF-header
+						lines[0].trim();
+						if(lines[0].charAt(0) !== '#') throw "Missing #-Key";
+						var header = lines[0];
+						console.log(header);
+
+						for(var i=1; i<lines.length; i++)
+						{
+							//Parse each model section
+							lines[i].trim();
+							if(lines[i] === '') continue;
+
+							var begin = lines[i].indexOf('{');
+							var end = lines[i].lastIndexOf('}');
+							if(!((begin > -1) && (end > -1) && (begin < end))) throw "Malformed curly brackets in model section!";
+							var nums = Float32Array.from(lines[i].slice(begin+1, end-2).split(","));
+							engine.loadModelFromUrl(lines[i].slice(0, begin), nums.slice(0, 3), nums.slice(3, 6), nums.slice(6, 9));
+						}
+					} catch(err) {
+						console.error("An error occured while parsing the scene: " + err);
+						if(console.trace) console.trace();
+					}
+				}
+				else if(status==903)
+				{
+					if(!(assetCache.get(fileUrl) instanceof Scene)) {console.error('Cache does not contain a scene for "' + fileUrl + '"!'); return;}
+					console.warn('Scene with url "' + fileUrl + '" is already loaded!')
+				}
+				else
+					console.error('Download of model "' + fileUrl + '" failed with [' + status + ']');
+			});
+		}
+
+	/**
+	 * @param{Model} model The model to add to the scene
+	*/
 	loadModelToScene(model)
 	{
 		if(typeof model === 'undefined')
@@ -598,7 +617,7 @@ class Model
 				this.rotation[1] += 0.01;
 			};
 
-		this.render = function(programInfo, projectionMatrix)
+		this.render = function(programInfo, projectionViewMatrix)
 		{
 			const modelMatrix = mat4.create();
 			mat4.translate(modelMatrix, modelMatrix, this.position);		// amount to translate
@@ -630,9 +649,11 @@ class Model
 			// Tell WebGL which indices to use to index the vertices
 			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ogldata.indexBuffer);
 
+			//Calculate Model View Projection Matrix
+			var mvp = mat4.multiply(mat4.create(), projectionViewMatrix, modelMatrix);
+
 			// Set the shader uniforms
-			programInfo.program.setMat4(programInfo.uniformLocations.projectionMatrix, projectionMatrix, false);
-			programInfo.program.setMat4(programInfo.uniformLocations.modelMatrix, modelMatrix, false);
+			programInfo.program.setMat4(programInfo.uniformLocations.modelViewProjection, mvp, false);
 			programInfo.program.setMat4(programInfo.uniformLocations.normalMatrix, normalMatrix, true);
 
 			// Specify the texture to map onto the faces.
