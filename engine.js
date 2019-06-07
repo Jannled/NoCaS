@@ -74,6 +74,13 @@ var engine; /* Bad approach */
 /** Stores Assets with their URL as key to prevent downloading them more than once */
 var assetCache = new Map();
 
+var keys = {
+	keyForward: false,
+	keyBackward: false,
+	keyLeft: false,
+	keyRight: false
+}
+
 class Engine
 {
 	/**
@@ -159,6 +166,33 @@ class Engine
 				ambientLight: shaderProgram.getUniformLocation('ambientLight')
 			},
 		};
+
+		//Register Keyboard events
+		window.addEventListener('keydown', function(event) {
+			switch(event.code)
+			{
+				case 'KeyW': keys.keyForward = true; break;
+
+				case 'KeyA': keys.keyLeft = true; break;
+
+				case 'KeyS': keys.keyBackward = true; break;
+
+				case 'KeyD': keys.keyRight = true; break;
+			}
+		});
+
+		window.addEventListener('keyup', function(event) {
+			switch(event.code)
+			{
+				case 'KeyW': keys.keyForward = false; break;
+
+				case 'KeyA': keys.keyLeft = false; break;
+
+				case 'KeyS': keys.keyBackward = false; break;
+
+				case 'KeyD': keys.keyRight = false; break;
+			}
+		})
 
 		var then = 0;
 		const logicTicks = 0.05;
@@ -282,6 +316,7 @@ class Engine
 				console.error('Download of model "' + fileUrl + '" failed with [' + status + ']');
 			}
 		});
+		console.log("Hallel");
 	}
 
 	/** Handle window y */
@@ -614,7 +649,10 @@ class Model
 			this.update = update;
 		else
 			this.update = function() {
-				this.rotation[1] += 0.01;
+				if(keys.keyLeft) this.rotation[1] += 0.01;
+				if(keys.keyRight) this.rotation[1] -= 0.01;
+				if(keys.keyForward) this.rotation[0] += 0.01;
+				if(keys.keyBackward) this.rotation[0] -= 0.01;
 			};
 
 		this.render = function(programInfo, projectionViewMatrix)
